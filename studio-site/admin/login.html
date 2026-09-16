@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Sign In — EMRASHOTIT STUDIOS</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-body">
+
+<div class="admin-login-screen">
+  <a href="../index.html" class="logo admin-login-logo" aria-label="Emrashotit Studios — home">
+    <img src="../images/logo-wordmark.png" alt="Emrashotit Studios" class="logo-mark">
+  </a>
+
+  <form class="contact-form admin-login-form" id="adminLoginForm" novalidate>
+    <p class="section-eyebrow admin-login-eyebrow"><span class="eyebrow-num">✦</span> Admin</p>
+
+    <div class="form-row">
+      <label for="adminPassword">Password<span aria-hidden="true">*</span></label>
+      <input type="password" id="adminPassword" name="password" autocomplete="current-password" required autofocus>
+    </div>
+
+    <div class="form-row form-row--footer">
+      <button type="submit" class="btn btn--primary" id="adminLoginBtn">Sign In</button>
+      <p class="form-status" id="adminLoginStatus" role="status" aria-live="polite"></p>
+    </div>
+  </form>
+
+  <a href="../index.html" class="text-link admin-back-link">← Back to site</a>
+</div>
+
+<script src="../js/admin-login.js"></script>
+</body>
+</html>

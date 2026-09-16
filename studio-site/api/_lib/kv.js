@@ -1,0 +1,76 @@
+// Shared data-store client + helpers.
+//
+// Uses Upstash Redis (installed from the Vercel Marketplace — "Storage" ->
+// "Redis"). Once installed on your Vercel project it injects one of these
+// env var pairs automatically, so both are supported here:
+//   KV_REST_API_URL / KV_REST_API_TOKEN               (older naming)
+//   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN  (current naming)
+//
+// Data shapes stored here:
+//   portfolio:items         -> JSON array of portfolio items
+//   gallery:<slug>          -> JSON object for one client gallery
+//   (gallery slugs are discovered via redis.keys("gallery:*"))
+
+const { Redis } = require("@upstash/redis");
+
+let client = null;
+
+function getClient() {
+  if (client) return client;
+
+  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    throw new Error(
+      "Redis is not configured — install the Redis integration from the Vercel Marketplace, or set KV_REST_API_URL / KV_REST_API_TOKEN."
+    );
+  }
+
+  client = new Redis({ url, token });
+  return client;
+}
+
+const PORTFOLIO_KEY = "portfolio:items";
+
+async function getPortfolioItems() {
+  const items = await getClient().get(PORTFOLIO_KEY);
+  return Array.isArray(items) ? items : [];
+}
+
+async function savePortfolioItems(items) {
+  await getClient().set(PORTFOLIO_KEY, items);
+}
+
+function galleryKey(slug) {
+  return `gallery:${slug}`;
+}
+
+async function getGallery(slug) {
+  return getClient().get(galleryKey(slug));
+}
+
+async function saveGallery(gallery) {
+  await getClient().set(galleryKey(gallery.slug), gallery);
+}
+
+async function deleteGallery(slug) {
+  await getClient().del(galleryKey(slug));
+}
+
+async function listGalleries() {
+  const redis = getClient();
+  const keys = await redis.keys("gallery:*");
+  if (!keys.length) return [];
+  const values = await Promise.all(keys.map((key) => redis.get(key)));
+  return values.filter(Boolean);
+}
+
+module.exports = {
+  getPortfolioItems,
+  savePortfolioItems,
+  getGallery,
+  saveGallery,
+  deleteGallery,
+  listGalleries,
+};

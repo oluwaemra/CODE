@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMRASHOTIT STUDIOS — Photography, Art Direction &amp; Production</title>
+<meta name="description" content="Emrashotit Studios is a photography, art direction, and production studio creating imagery that positions people and brands for recognition.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ HEADER / NAV ============ -->
+<header class="site-header">
+  <nav class="nav nav--left" aria-label="Primary left">
+    <a href="/" class="nav-link">Home</a>
+
+    <div class="nav-item has-dropdown">
+      <a href="portfolio.html" class="nav-link">Portfolio <span class="chevron">⌄</span></a>
+      <div class="dropdown">
+        <a href="portfolio.html#portraits" class="dropdown-link">Portraits</a>
+        <a href="portfolio.html#events" class="dropdown-link">Events</a>
+        <a href="portfolio.html#graduation" class="dropdown-link">Graduation</a>
+        <a href="portfolio.html#featured" class="dropdown-link">Featured Projects</a>
+      </div>
+    </div>
+
+    <div class="nav-item has-dropdown">
+      <a href="packages.html" class="nav-link">Services &amp; Rates <span class="chevron">⌄</span></a>
+      <div class="dropdown">
+        <a href="packages.html#portraits" class="dropdown-link">Portrait Packages</a>
+        <a href="packages.html#custom" class="dropdown-link">Custom Projects</a>
+      </div>
+    </div>
+  </nav>
+
+  <a href="/" class="logo" aria-label="Emrashotit Studios — home">
+    <img src="images/logo-wordmark.png" alt="Emrashotit Studios" class="logo-mark">
+  </a>
+
+  <nav class="nav nav--right" aria-label="Primary right">
+    <a href="about.html" class="nav-link">About</a>
+    <a href="client-gallery.html" class="nav-link">Client Gallery</a>
+    <a href="contact.html" class="nav-link">Contact</a>
+  </nav>
+
+  <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- Signal bar: live-status strip, mirrors the studio's own tagline -->
+<div class="meta-bar">
+  <span class="meta-status"><span class="pulse-dot" aria-hidden="true"></span>STUDIO ONLINE</span>
+  <span class="meta-tagline">PHOTOGRAPHY · ART DIRECTION · PRODUCTION</span>
+</div>
+
+<!-- Mobile nav -->
+<nav class="mobile-nav" id="mobileNav" aria-label="Mobile primary">
+  <a href="/">Home</a>
+  <a href="portfolio.html">Portfolio</a>
+  <a href="portfolio.html#portraits">Portraits</a>
+  <a href="portfolio.html#events">Events</a>
+  <a href="portfolio.html#graduation">Graduation</a>
+  <a href="portfolio.html#featured">Featured Projects</a>
+  <a href="packages.html">Services &amp; Rates</a>
+  <a href="about.html">About</a>
+  <a href="client-gallery.html">Client Gallery</a>
+  <a href="contact.html">Contact</a>
+</nav>
+
+<main>
+
+  <!-- ============ HERO — VIEWFINDER ============ -->
+  <section class="hero" id="hero" aria-label="Featured chapters">
+
+    <!-- Vertical category ruler — replaces the old horizontal ticker -->
+    <div class="hero-ruler" aria-hidden="true">
+      <span>PORTRAITS</span>
+      <span class="hero-ruler-tick"></span>
+      <span>EVENTS</span>
+      <span class="hero-ruler-tick"></span>
+      <span>GRADUATION</span>
+      <span class="hero-ruler-tick"></span>
+      <span class="is-current">FEATURED</span>
+    </div>
+
+    <!-- Headline + status, in the negative space beside the framed photo -->
+    <div class="hero-info">
+      <p class="section-eyebrow hero-eyebrow"><span class="eyebrow-num">✦</span> Signal /001</p>
+      <h1 class="hero-title" id="heroTitle">Portraits</h1>
+      <p class="hero-caption">Editorial portraiture, framed with intention.</p>
+      <a href="portfolio.html#portraits" class="hero-link" id="heroLink">
+        <span>Explore Projects</span>
+        <span class="arrow">→</span>
+      </a>
+
+      <div class="hero-status">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span class="hero-status-label">STUDIO ONLINE</span>
+        <span class="hero-clock" id="heroClock">00:00:00 · LAGOS</span>
+      </div>
+    </div>
+
+    <!-- Framed photo — camera-viewfinder corner brackets instead of full-bleed -->
+    <div class="hero-frame">
+      <div class="hero-slides" id="heroSlides">
+        <div class="hero-slide is-active" data-index="0" style="background-image:url('images/hero-portraits.svg')"></div>
+        <div class="hero-slide" data-index="1" style="background-image:url('images/hero-events.svg')"></div>
+      </div>
+
+      <svg class="hero-frame-bracket hero-frame-bracket--tl" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M2 34V2H34" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <svg class="hero-frame-bracket hero-frame-bracket--tr" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M32 34V2H0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <svg class="hero-frame-bracket hero-frame-bracket--bl" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M2 0V32H34" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <svg class="hero-frame-bracket hero-frame-bracket--br" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M32 0V32H0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+
+      <button class="hero-nav hero-nav--prev" id="prevSlide" type="button" aria-label="Previous slide">‹</button>
+      <button class="hero-nav hero-nav--next" id="nextSlide" type="button" aria-label="Next slide">›</button>
+
+      <div class="hero-frame-label hero-frame-label--top">
+        <span id="heroCounter"><span class="counter-current">I</span> / <span class="counter-total">II</span></span>
+      </div>
+      <div class="hero-frame-label hero-frame-label--bottom">LAGOS, NG</div>
+
+      <div class="hero-dots" id="heroDots" role="tablist" aria-label="Slides">
+        <button class="hero-dot is-active" data-slide="0" role="tab" aria-label="Go to slide 1"></button>
+        <button class="hero-dot" data-slide="1" role="tab" aria-label="Go to slide 2"></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ABOUT ============ -->
+  <section class="about" id="about">
+    <div class="about-frame">
+      <svg class="about-frame-bracket about-frame-bracket--tl" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M1 20V1H20" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      <svg class="about-frame-bracket about-frame-bracket--tr" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M19 20V1H0" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      <svg class="about-frame-bracket about-frame-bracket--bl" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M1 0V19H20" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      <svg class="about-frame-bracket about-frame-bracket--br" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M19 0V19H0" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+
+      <h2 class="section-eyebrow"><span class="eyebrow-num">01 —</span> About Us</h2>
+      <p class="about-copy">
+        EMRASHOTIT STUDIOS is a photography, art direction, and production house creating imagery
+        that positions individuals, artists, and brands for recognition at the highest
+        level. All built on one belief: exceptional people deserve exceptional images
+        with an exceptional presentation.
+      </p>
+      <a href="about.html" class="text-link">Learn More</a>
+    </div>
+  </section>
+
+  <!-- ============ PORTFOLIO TEASER ============ -->
+  <section class="portfolio-teaser">
+    <div class="portfolio-teaser-copy">
+      <p class="section-eyebrow section-eyebrow--tight"><span class="eyebrow-num">02 —</span> Portfolio</p>
+      <h2>Portfolio</h2>
+      <p class="portfolio-teaser-tagline">See what we do</p>
+      <a href="portfolio.html" class="text-link">View Gallery</a>
+    </div>
+    <a href="portfolio.html" class="portfolio-frame" aria-label="View full portfolio">
+      <img src="images/portfolio-featured.svg" alt="Featured editorial portrait" loading="lazy">
+      <svg class="portfolio-frame-bracket portfolio-frame-bracket--tl" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M2 30V2H30" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <svg class="portfolio-frame-bracket portfolio-frame-bracket--br" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M28 0V28H0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <div class="portfolio-frame-label">FILE 001</div>
+    </a>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <a href="/" class="logo logo--footer" aria-label="Emrashotit Studios — home">
+    <img src="images/logo-wordmark.png" alt="Emrashotit Studios" class="logo-mark logo-mark--footer">
+  </a>
+  <nav class="footer-nav" aria-label="Footer">
+    <a href="/">Home</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="packages.html">Services &amp; Rates</a>
+    <a href="about.html">About</a>
+    <a href="client-gallery.html">Client Gallery</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+  <p class="footer-status"><span class="pulse-dot" aria-hidden="true"></span>STUDIO ONLINE — LAGOS, NIGERIA</p>
+  <p class="footer-copyright">© <span id="year"></span> EMRASHOTIT STUDIOS</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

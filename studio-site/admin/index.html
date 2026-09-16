@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — EMRASHOTIT STUDIOS</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin-body">
+
+<header class="admin-header">
+  <a href="../index.html" class="logo admin-header-logo" aria-label="Emrashotit Studios — home">
+    <img src="../images/logo-wordmark.png" alt="Emrashotit Studios" class="logo-mark">
+  </a>
+  <span class="admin-header-label">ADMIN</span>
+  <div class="admin-header-actions">
+    <a href="../index.html" class="text-link">View Site</a>
+    <button type="button" class="btn btn--outline btn--sm" id="adminSignOutBtn">Sign Out</button>
+  </div>
+</header>
+
+<main class="admin-main" id="adminMain" hidden>
+
+  <nav class="admin-tabs" role="tablist">
+    <button type="button" class="admin-tab is-active" data-tab="portfolio" role="tab" aria-selected="true">Portfolio</button>
+    <button type="button" class="admin-tab" data-tab="galleries" role="tab" aria-selected="false">Client Galleries</button>
+  </nav>
+
+  <!-- ============ PORTFOLIO TAB ============ -->
+  <section class="admin-panel is-active" id="panel-portfolio">
+
+    <div class="admin-card">
+      <h2>Add Portfolio Item</h2>
+      <form class="contact-form admin-form" id="portfolioForm" novalidate>
+        <div class="form-row">
+          <label for="pfTitle">Title<span aria-hidden="true">*</span></label>
+          <input type="text" id="pfTitle" name="title" required>
+        </div>
+        <div class="form-row form-row--split">
+          <div>
+            <label for="pfCategory">Category<span aria-hidden="true">*</span></label>
+            <select id="pfCategory" name="category" required>
+              <option value="" disabled selected>Select one</option>
+              <option value="portraits">Portraits</option>
+              <option value="events">Events</option>
+              <option value="commercial">Commercial</option>
+              <option value="graduation">Graduation</option>
+              <option value="video">Video Production</option>
+              <option value="featured">Featured</option>
+            </select>
+          </div>
+          <div>
+            <label for="pfHref">Link (optional)</label>
+            <input type="text" id="pfHref" name="href" placeholder="/portraits">
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="pfImage">Image<span aria-hidden="true">*</span></label>
+          <input type="file" id="pfImage" name="image" accept="image/png,image/jpeg,image/webp" required>
+        </div>
+        <div class="form-row">
+          <label for="pfAlt">Alt text</label>
+          <input type="text" id="pfAlt" name="alt" placeholder="Defaults to the title">
+        </div>
+        <div class="form-row form-row--footer">
+          <button type="submit" class="btn btn--primary" id="pfSubmitBtn">Add Item</button>
+          <p class="form-status" id="pfStatus" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+
+    <div class="admin-card">
+      <h2>Portfolio Items</h2>
+      <div class="admin-item-grid" id="portfolioItemGrid">
+        <p class="admin-empty" id="portfolioEmpty">No portfolio items yet — add your first one above.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ GALLERIES TAB ============ -->
+  <section class="admin-panel" id="panel-galleries" hidden>
+
+    <div class="admin-card">
+      <h2>Create Client Gallery</h2>
+      <form class="contact-form admin-form" id="galleryForm" novalidate>
+        <div class="form-row form-row--split">
+          <div>
+            <label for="galClientName">Client Name<span aria-hidden="true">*</span></label>
+            <input type="text" id="galClientName" name="clientName" required>
+          </div>
+          <div>
+            <label for="galSlug">Gallery Code<span aria-hidden="true">*</span></label>
+            <input type="text" id="galSlug" name="slug" placeholder="e.g. ada-tunde-wedding" required>
+          </div>
+        </div>
+        <div class="form-row form-row--split">
+          <div>
+            <label for="galPassword">Password<span aria-hidden="true">*</span></label>
+            <input type="text" id="galPassword" name="password" required>
+          </div>
+          <div class="admin-checkbox-row">
+            <label class="admin-checkbox-label">
+              <input type="checkbox" id="galDownloadEnabled" name="downloadEnabled" checked>
+              Allow downloads
+            </label>
+          </div>
+        </div>
+        <div class="form-row form-row--footer">
+          <button type="submit" class="btn btn--primary" id="galSubmitBtn">Create Gallery</button>
+          <p class="form-status" id="galStatus" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+
+    <div class="admin-card">
+      <h2>Client Galleries</h2>
+      <div class="admin-gallery-list" id="galleryList">
+        <p class="admin-empty" id="galleriesEmpty">No client galleries yet — create one above.</p>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<p class="admin-loading" id="adminLoading">Checking session…</p>
+
+<script src="../js/admin.js"></script>
+</body>
+</html>

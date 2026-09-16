@@ -1,0 +1,20 @@
+{
+  "_comment": "Demo data only — one placeholder gallery so the login flow is testable end-to-end. Replace or, better, migrate this whole file to a real database before going live (see api/README.md). Password for the demo gallery below is 'previewme'.",
+
+  "galleries": [
+    {
+      "slug": "demo",
+      "clientName": "Ada & Tunde — Wedding Preview",
+      "passwordHash": "$2b$10$foxgdWvNZ5hm.jthhvMT3.nEnC5mjxtOrwVqXS5SPdMn9KYLI6t/e",
+      "downloadEnabled": true,
+      "photos": [
+        { "src": "/images/hero-portraits.svg", "alt": "Portrait — placeholder" },
+        { "src": "/images/hero-events.svg", "alt": "Event coverage — placeholder" },
+        { "src": "/images/hero-commercial.svg", "alt": "Commercial — placeholder" },
+        { "src": "/images/cat-graduation.svg", "alt": "Graduation — placeholder" },
+        { "src": "/images/cat-featured.svg", "alt": "Featured — placeholder" },
+        { "src": "/images/portfolio-featured.svg", "alt": "Editorial — placeholder" }
+      ]
+    }
+  ]
+}

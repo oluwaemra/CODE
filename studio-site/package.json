@@ -1,0 +1,22 @@
+{
+  "name": "emrashotit-studios-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Emrashotit Studios — static site with Vercel serverless functions (contact form, client galleries, admin panel).",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "seed": "node scripts/seed-demo-data.js"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.38.3",
+    "@vercel/blob": "^2.8.0",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2"
+  }
+}

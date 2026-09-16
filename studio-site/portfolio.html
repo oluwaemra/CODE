@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — EMRASHOTIT STUDIOS</title>
+<meta name="description" content="Selected work from Emrashotit Studios — portraits, events, and graduation photography.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ HEADER / NAV ============ -->
+<header class="site-header">
+  <nav class="nav nav--left" aria-label="Primary left">
+    <a href="index.html" class="nav-link">Home</a>
+
+    <div class="nav-item has-dropdown">
+      <a href="portfolio.html" class="nav-link is-current">Portfolio <span class="chevron">⌄</span></a>
+      <div class="dropdown">
+        <a href="portfolio.html#portraits" class="dropdown-link">Portraits</a>
+        <a href="portfolio.html#events" class="dropdown-link">Events</a>
+        <a href="portfolio.html#graduation" class="dropdown-link">Graduation</a>
+        <a href="portfolio.html#featured" class="dropdown-link">Featured Projects</a>
+      </div>
+    </div>
+
+    <div class="nav-item has-dropdown">
+      <a href="packages.html" class="nav-link">Services &amp; Rates <span class="chevron">⌄</span></a>
+      <div class="dropdown">
+        <a href="packages.html#portraits" class="dropdown-link">Portrait Packages</a>
+        <a href="packages.html#custom" class="dropdown-link">Custom Projects</a>
+      </div>
+    </div>
+  </nav>
+
+  <a href="index.html" class="logo" aria-label="Emrashotit Studios — home">
+    <img src="images/logo-wordmark.png" alt="Emrashotit Studios" class="logo-mark">
+  </a>
+
+  <nav class="nav nav--right" aria-label="Primary right">
+    <a href="about.html" class="nav-link">About</a>
+    <a href="client-gallery.html" class="nav-link">Client Gallery</a>
+    <a href="contact.html" class="nav-link">Contact</a>
+  </nav>
+
+  <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- Signal bar -->
+<div class="meta-bar">
+  <span class="meta-status"><span class="pulse-dot" aria-hidden="true"></span>STUDIO ONLINE</span>
+  <span class="meta-tagline">PHOTOGRAPHY · ART DIRECTION · PRODUCTION</span>
+</div>
+
+<!-- Mobile nav -->
+<nav class="mobile-nav" id="mobileNav" aria-label="Mobile primary">
+  <a href="index.html">Home</a>
+  <a href="portfolio.html">Portfolio</a>
+  <a href="portfolio.html#portraits">Portraits</a>
+  <a href="portfolio.html#events">Events</a>
+  <a href="portfolio.html#graduation">Graduation</a>
+  <a href="portfolio.html#featured">Featured Projects</a>
+  <a href="packages.html">Services &amp; Rates</a>
+  <a href="about.html">About</a>
+  <a href="client-gallery.html">Client Gallery</a>
+  <a href="contact.html">Contact</a>
+</nav>
+
+<main>
+
+  <!-- ============ PAGE HERO ============ -->
+  <section class="page-hero">
+    <p class="section-eyebrow"><span class="eyebrow-num">✦</span> Selected Work</p>
+    <h1 class="page-title">Portfolio</h1>
+    <p class="page-intro">
+      A cross-section of portraits, events, and graduation work.
+      Filter by category below, or explore a project's full set.
+    </p>
+  </section>
+
+  <!-- ============ FILTER BAR ============ -->
+  <div class="filter-bar" role="tablist" aria-label="Filter portfolio by category">
+    <button class="filter-btn is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+    <button class="filter-btn" data-filter="portraits" role="tab" aria-selected="false">Portraits</button>
+    <button class="filter-btn" data-filter="events" role="tab" aria-selected="false">Events</button>
+    <button class="filter-btn" data-filter="graduation" role="tab" aria-selected="false">Graduation</button>
+    <button class="filter-btn" data-filter="featured" role="tab" aria-selected="false">Featured</button>
+  </div>
+
+  <!-- ============ GALLERY GRID ============ -->
+  <!-- Populated by js/portfolio.js from GET /api/portfolio (managed via /admin).
+       Falls back to placeholder items if the API isn't reachable yet. -->
+  <section class="gallery-grid" id="galleryGrid">
+    <p class="gallery-loading" id="galleryLoading">Loading portfolio…</p>
+    <p class="gallery-empty" id="galleryEmpty" hidden>No projects in this category yet — check back soon.</p>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <a href="index.html" class="logo logo--footer" aria-label="Emrashotit Studios — home">
+    <img src="images/logo-wordmark.png" alt="Emrashotit Studios" class="logo-mark logo-mark--footer">
+  </a>
+  <nav class="footer-nav" aria-label="Footer">
+    <a href="index.html">Home</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="packages.html">Services &amp; Rates</a>
+    <a href="about.html">About</a>
+    <a href="client-gallery.html">Client Gallery</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+  <p class="footer-status"><span class="pulse-dot" aria-hidden="true"></span>STUDIO ONLINE — LAGOS, NIGERIA</p>
+  <p class="footer-copyright">© <span id="year"></span> EMRASHOTIT STUDIOS</p>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/portfolio.js"></script>
+</body>
+</html>
