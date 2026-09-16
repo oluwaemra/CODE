@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "vercel": "^48.0.0"
   }
 }
