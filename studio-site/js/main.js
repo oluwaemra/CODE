@@ -74,7 +74,7 @@ function initHeroSlideshow() {
     resetAutoplay();
   }
 
-  function resetAutoplay() {
+  "" function resetAutoplay() {
     if (timer) clearInterval(timer);
     timer = setInterval(() => goTo(current + 1), AUTOPLAY_MS);
   }
