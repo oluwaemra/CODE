@@ -7,7 +7,7 @@
 <meta name="description" content="Emrashotit Studios is a photography, art direction, and production studio creating imagery that positions people and brands for recognition.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -73,21 +73,10 @@
 
 <main>
 
-  <!-- ============ HERO — VIEWFINDER ============ -->
+  <!-- ============ HERO ============ -->
   <section class="hero" id="hero" aria-label="Featured chapters">
 
-    <!-- Vertical category ruler — replaces the old horizontal ticker -->
-    <div class="hero-ruler" aria-hidden="true">
-      <span>PORTRAITS</span>
-      <span class="hero-ruler-tick"></span>
-      <span>EVENTS</span>
-      <span class="hero-ruler-tick"></span>
-      <span>GRADUATION</span>
-      <span class="hero-ruler-tick"></span>
-      <span class="is-current">FEATURED</span>
-    </div>
-
-    <!-- Headline + status, in the negative space beside the framed photo -->
+    <!-- Headline + status, in the negative space beside the photo -->
     <div class="hero-info">
       <p class="section-eyebrow hero-eyebrow"><span class="eyebrow-num">✦</span> Signal /001</p>
       <h1 class="hero-title" id="heroTitle">Portraits</h1>
@@ -104,17 +93,12 @@
       </div>
     </div>
 
-    <!-- Framed photo — camera-viewfinder corner brackets instead of full-bleed -->
+    <!-- Photo panel, edge-to-edge -->
     <div class="hero-frame">
       <div class="hero-slides" id="heroSlides">
         <div class="hero-slide is-active" data-index="0" style="background-image:url('images/hero-portraits.svg')"></div>
         <div class="hero-slide" data-index="1" style="background-image:url('images/hero-events.svg')"></div>
       </div>
-
-      <svg class="hero-frame-bracket hero-frame-bracket--tl" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M2 34V2H34" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      <svg class="hero-frame-bracket hero-frame-bracket--tr" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M32 34V2H0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      <svg class="hero-frame-bracket hero-frame-bracket--bl" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M2 0V32H34" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      <svg class="hero-frame-bracket hero-frame-bracket--br" width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M32 0V32H0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
 
       <button class="hero-nav hero-nav--prev" id="prevSlide" type="button" aria-label="Previous slide">‹</button>
       <button class="hero-nav hero-nav--next" id="nextSlide" type="button" aria-label="Next slide">›</button>
@@ -131,23 +115,24 @@
     </div>
   </section>
 
+  <!-- ============ CATEGORY STRIP ============ -->
+  <div class="category-strip" aria-hidden="true">
+    <span>PORTRAITS</span>
+    <span>EVENTS</span>
+    <span>GRADUATION</span>
+    <span>FEATURED</span>
+  </div>
+
   <!-- ============ ABOUT ============ -->
   <section class="about" id="about">
-    <div class="about-frame">
-      <svg class="about-frame-bracket about-frame-bracket--tl" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M1 20V1H20" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-      <svg class="about-frame-bracket about-frame-bracket--tr" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M19 20V1H0" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-      <svg class="about-frame-bracket about-frame-bracket--bl" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M1 0V19H20" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-      <svg class="about-frame-bracket about-frame-bracket--br" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M19 0V19H0" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-
-      <h2 class="section-eyebrow"><span class="eyebrow-num">01 —</span> About Us</h2>
-      <p class="about-copy">
-        EMRASHOTIT STUDIOS is a photography, art direction, and production house creating imagery
-        that positions individuals, artists, and brands for recognition at the highest
-        level. All built on one belief: exceptional people deserve exceptional images
-        with an exceptional presentation.
-      </p>
-      <a href="about.html" class="text-link">Learn More</a>
-    </div>
+    <h2 class="section-eyebrow"><span class="eyebrow-num">01 —</span> About Us</h2>
+    <p class="about-copy">
+      EMRASHOTIT STUDIOS is a photography, art direction, and production house creating imagery
+      that positions individuals, artists, and brands for recognition at the highest
+      level. All built on one belief: exceptional people deserve exceptional images
+      with an exceptional presentation.
+    </p>
+    <a href="about.html" class="text-link">Learn More</a>
   </section>
 
   <!-- ============ PORTFOLIO TEASER ============ -->
@@ -160,8 +145,6 @@
     </div>
     <a href="portfolio.html" class="portfolio-frame" aria-label="View full portfolio">
       <img src="images/portfolio-featured.svg" alt="Featured editorial portrait" loading="lazy">
-      <svg class="portfolio-frame-bracket portfolio-frame-bracket--tl" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M2 30V2H30" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      <svg class="portfolio-frame-bracket portfolio-frame-bracket--br" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M28 0V28H0" stroke="currentColor" stroke-width="2" fill="none"/></svg>
       <div class="portfolio-frame-label">FILE 001</div>
     </a>
   </section>
