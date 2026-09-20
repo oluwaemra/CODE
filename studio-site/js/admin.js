@@ -44,7 +44,7 @@ async function readJson(res) {
 // Resizes/compresses an image client-side before upload (up to 2560px on the
 // long edge), so a full-res camera JPEG doesn't blow past the serverless
 // function's request-body limit. Returns { dataBase64, contentType, filename }.
-function prepareImageForUpload(file, { maxDimension = 2560, quality = 0.92 } = {}) {
+function prepareImageForUpload(file, { maxDimension = 2560, quality = 0.92, filenamePrefix = "" } = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Could not read file."));
@@ -77,7 +77,7 @@ function prepareImageForUpload(file, { maxDimension = 2560, quality = 0.92 } = {
           reject(new Error("This image is too large to upload. Try a smaller export."));
           return;
         }
-        const filename = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+        const filename = filenamePrefix + file.name.replace(/\.[^.]+$/, "") + ".jpg";
         resolve({ dataBase64, contentType: "image/jpeg", filename });
       };
       img.src = reader.result;
@@ -89,8 +89,8 @@ function prepareImageForUpload(file, { maxDimension = 2560, quality = 0.92 } = {
 // Portfolio thumbnails: resized/compressed client-side, then sent through
 // a normal POST to /api/admin/upload. Fine (even desirable — smaller,
 // faster-loading) for images that only ever get shown on the public site.
-async function uploadImage(file) {
-  const prepared = await prepareImageForUpload(file);
+async function uploadImage(file, options) {
+  const prepared = await prepareImageForUpload(file, options);
   const res = await fetch("/api/admin/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -408,7 +408,7 @@ function initGalleriesTab() {
       gallery.photos.forEach((photo) => {
         const thumb = document.createElement("div");
         thumb.className = "admin-photo-thumb";
-        thumb.innerHTML = `<img src="${photo.src}" alt="${photo.alt || ""}"><button type="button" class="admin-photo-remove" aria-label="Remove photo">×</button>`;
+        thumb.innerHTML = `<img src="${photo.thumb || photo.src}" alt="${photo.alt || ""}"><button type="button" class="admin-photo-remove" aria-label="Remove photo">×</button>`;
         thumb.querySelector(".admin-photo-remove").addEventListener("click", async () => {
           if (!confirm("Remove this photo from the gallery?")) return;
           const nextPhotos = gallery.photos.filter((p) => p.src !== photo.src);
@@ -436,7 +436,16 @@ function initGalleriesTab() {
           const newPhotos = [];
           for (const file of files) {
             const url = await uploadGalleryPhotoFullQuality(file);
-            newPhotos.push({ src: url, alt: `${gallery.clientName} — photo` });
+            // A small preview for the client's grid; the download button still
+            // serves the untouched original. If the preview fails, the photo
+            // still works (the grid just falls back to the original).
+            let thumb;
+            try {
+              thumb = await uploadImage(file, { maxDimension: 1200, quality: 0.8, filenamePrefix: "preview-" });
+            } catch (err) {
+              console.warn("Preview upload failed for", file.name, err);
+            }
+            newPhotos.push({ src: url, thumb, alt: `${gallery.clientName} — photo` });
           }
           const res = await fetch("/api/admin/galleries", {
             method: "PUT",

@@ -23,6 +23,19 @@ document.addEventListener("DOMContentLoaded", () => {
     statusEl.className = "form-status" + (tone ? ` form-status--${tone}` : "");
   }
 
+  // Storage lives on another origin, where browsers ignore the `download`
+  // attribute; this query param makes the storage service itself send the
+  // original file as a download instead of opening it in a tab.
+  function downloadUrl(src) {
+    try {
+      const url = new URL(src);
+      url.searchParams.set("download", "1");
+      return url.toString();
+    } catch {
+      return src;
+    }
+  }
+
   function renderGallery(gallery) {
     clientNameEl.textContent = gallery.clientName;
     photoGrid.innerHTML = "";
@@ -32,14 +45,14 @@ document.addEventListener("DOMContentLoaded", () => {
       figure.className = "gallery-photo";
 
       const img = document.createElement("img");
-      img.src = photo.src;
+      img.src = photo.thumb || photo.src;
       img.alt = photo.alt || "";
       img.loading = "lazy";
       figure.appendChild(img);
 
       if (gallery.downloadEnabled) {
         const link = document.createElement("a");
-        link.href = photo.src;
+        link.href = downloadUrl(photo.src);
         link.download = "";
         link.className = "gallery-photo-download";
         link.setAttribute("aria-label", "Download photo");
