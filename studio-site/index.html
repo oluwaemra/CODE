@@ -96,22 +96,25 @@
     <!-- Photo panel, edge-to-edge -->
     <div class="hero-frame">
       <div class="hero-slides" id="heroSlides">
-        <div class="hero-slide is-active" data-index="0" style="background-image:url('images/hero-portraits.svg')"></div>
-        <div class="hero-slide" data-index="1" style="background-image:url('images/hero-events.svg')"></div>
+        <div class="hero-slide is-active" style="background-image:url('images/hero-portraits.svg')"
+             data-title="Portraits" data-caption="Editorial portraiture, framed with intention." data-href="portfolio.html#portraits"></div>
+        <div class="hero-slide" style="background-image:url('images/hero-events.svg')"
+             data-title="Events" data-caption="Moments worth remembering, captured as they happen." data-href="portfolio.html#events"></div>
+        <div class="hero-slide" style="background-image:url('images/cat-graduation.svg')"
+             data-title="Graduation" data-caption="Milestones, celebrated in style." data-href="portfolio.html#graduation"></div>
+        <div class="hero-slide" style="background-image:url('images/cat-featured.svg')"
+             data-title="Featured" data-caption="Selected projects from the studio." data-href="portfolio.html#featured"></div>
       </div>
 
       <button class="hero-nav hero-nav--prev" id="prevSlide" type="button" aria-label="Previous slide">‹</button>
       <button class="hero-nav hero-nav--next" id="nextSlide" type="button" aria-label="Next slide">›</button>
 
       <div class="hero-frame-label hero-frame-label--top">
-        <span id="heroCounter"><span class="counter-current">I</span> / <span class="counter-total">II</span></span>
+        <span id="heroCounter"><span class="counter-current">I</span> / <span class="counter-total">IV</span></span>
       </div>
       <div class="hero-frame-label hero-frame-label--bottom">LAGOS, NG</div>
 
-      <div class="hero-dots" id="heroDots" role="tablist" aria-label="Slides">
-        <button class="hero-dot is-active" data-slide="0" role="tab" aria-label="Go to slide 1"></button>
-        <button class="hero-dot" data-slide="1" role="tab" aria-label="Go to slide 2"></button>
-      </div>
+      <div class="hero-dots" id="heroDots" role="tablist" aria-label="Slides"></div>
     </div>
   </section>
 

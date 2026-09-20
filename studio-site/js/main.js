@@ -34,37 +34,48 @@ function initMobileMenu() {
 /* ---------- Hero slideshow ---------- */
 function initHeroSlideshow() {
   const slides = Array.from(document.querySelectorAll(".hero-slide"));
-  const dots = Array.from(document.querySelectorAll(".hero-dot"));
+  const dotsWrap = document.getElementById("heroDots");
   const prevBtn = document.getElementById("prevSlide");
   const nextBtn = document.getElementById("nextSlide");
   const titleEl = document.getElementById("heroTitle");
+  const captionEl = document.querySelector(".hero-caption");
   const linkEl = document.getElementById("heroLink");
   const counterEl = document.querySelector(".counter-current");
+  const totalEl = document.querySelector(".counter-total");
   if (!slides.length) return;
 
-  // Content per slide — swap in your real copy/links here,
-  // or generate this array server-side from your CMS data.
-  const slideContent = [
-    { title: "Portraits", href: "portfolio.html#portraits" },
-    { title: "Events", href: "portfolio.html#events" },
-  ];
-
-  const romanNumerals = ["I", "II", "III", "IV", "V", "VI"];
+  // Each slide carries its own copy via data-title / data-caption / data-href,
+  // so adding a photo is just adding another .hero-slide in the HTML.
+  const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
   const AUTOPLAY_MS = 6000;
   let current = 0;
   let timer = null;
+
+  if (dotsWrap) dotsWrap.innerHTML = "";
+  const dots = slides.map((_, i) => {
+    const dot = document.createElement("button");
+    dot.className = "hero-dot";
+    dot.type = "button";
+    dot.setAttribute("role", "tab");
+    dot.setAttribute("aria-label", `Go to slide ${i + 1}`);
+    dotsWrap?.appendChild(dot);
+    return dot;
+  });
+  if (totalEl) totalEl.textContent = romanNumerals[slides.length - 1] || slides.length;
+  if (slides.length < 2) {
+    prevBtn?.setAttribute("hidden", "");
+    nextBtn?.setAttribute("hidden", "");
+  }
 
   function render(index) {
     slides.forEach((s, i) => s.classList.toggle("is-active", i === index));
     dots.forEach((d, i) => d.classList.toggle("is-active", i === index));
 
-    const content = slideContent[index];
-    if (content) {
-      titleEl.textContent = content.title;
-      linkEl.href = content.href;
-      linkEl.querySelector("span").textContent = "Explore Projects";
-    }
-    counterEl.textContent = romanNumerals[index] || index + 1;
+    const data = slides[index].dataset;
+    if (data.title) titleEl.textContent = data.title;
+    if (data.caption && captionEl) captionEl.textContent = data.caption;
+    if (data.href) linkEl.href = data.href;
+    if (counterEl) counterEl.textContent = romanNumerals[index] || index + 1;
     current = index;
   }
 
@@ -74,7 +85,7 @@ function initHeroSlideshow() {
     resetAutoplay();
   }
 
-  "" function resetAutoplay() {
+  function resetAutoplay() {
     if (timer) clearInterval(timer);
     timer = setInterval(() => goTo(current + 1), AUTOPLAY_MS);
   }
