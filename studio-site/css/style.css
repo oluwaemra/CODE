@@ -249,7 +249,7 @@ img { max-width: 100%; display: block; }
      custom property resolves relative to the stylesheet that consumes it,
      not the document, which 404s here since this file lives in /css/.) */
   background-size: cover;
-  background-position: center;
+  background-position: center 25%; /* keep faces in frame when a portrait is cropped wide */
   opacity: 0;
   transition: opacity 1.1s var(--ease);
 }
