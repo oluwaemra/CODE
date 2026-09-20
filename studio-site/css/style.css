@@ -262,7 +262,8 @@ img { max-width: 100%; display: block; }
   font-family: var(--mono);
   font-size: 9px;
   letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55); /* stays legible on very light photos */
 }
 .hero-frame-label--top { left: 20px; top: 20px; }
 .hero-frame-label--bottom { right: 20px; bottom: 20px; }
@@ -279,7 +280,8 @@ img { max-width: 100%; display: block; }
 .hero-dot {
   width: 18px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.45);
   border: none;
   cursor: pointer;
   transition: background 0.2s var(--ease);
