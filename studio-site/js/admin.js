@@ -137,7 +137,9 @@ function initTabs() {
         t.setAttribute("aria-selected", String(t === tab));
       });
       document.querySelectorAll(".admin-panel").forEach((panel) => {
-        panel.hidden = panel.id !== `panel-${tab.dataset.tab}`;
+        const isActive = panel.id === `panel-${tab.dataset.tab}`;
+        panel.hidden = !isActive;
+        panel.classList.toggle("is-active", isActive);
       });
     });
   });
