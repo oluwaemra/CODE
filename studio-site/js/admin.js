@@ -41,10 +41,10 @@ async function readJson(res) {
   }
 }
 
-// Resizes/compresses an image client-side before upload, so a full-res
-// camera JPEG doesn't blow past the serverless function's request-body
-// limit. Returns { dataBase64, contentType, filename }.
-function prepareImageForUpload(file, { maxDimension = 1800, quality = 0.85 } = {}) {
+// Resizes/compresses an image client-side before upload (up to 2560px on the
+// long edge), so a full-res camera JPEG doesn't blow past the serverless
+// function's request-body limit. Returns { dataBase64, contentType, filename }.
+function prepareImageForUpload(file, { maxDimension = 2560, quality = 0.92 } = {}) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Could not read file."));
@@ -63,10 +63,22 @@ function prepareImageForUpload(file, { maxDimension = 1800, quality = 0.85 } = {
         canvas.height = height;
         canvas.getContext("2d").drawImage(img, 0, 0, width, height);
 
-        const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
-        const dataUrl = canvas.toDataURL(outputType, quality);
-        const dataBase64 = dataUrl.split(",")[1];
-        resolve({ dataBase64, contentType: outputType, filename: file.name });
+        // Always JPEG: PNG photos blow past the request-size limit. Step the
+        // quality down only if the encoded image would exceed ~4MB (Vercel
+        // rejects request bodies over 4.5MB).
+        const MAX_BASE64_CHARS = 4 * 1024 * 1024;
+        let q = quality;
+        let dataBase64 = canvas.toDataURL("image/jpeg", q).split(",")[1];
+        while (dataBase64.length > MAX_BASE64_CHARS && q > 0.5) {
+          q -= 0.07;
+          dataBase64 = canvas.toDataURL("image/jpeg", q).split(",")[1];
+        }
+        if (dataBase64.length > MAX_BASE64_CHARS) {
+          reject(new Error("This image is too large to upload. Try a smaller export."));
+          return;
+        }
+        const filename = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+        resolve({ dataBase64, contentType: "image/jpeg", filename });
       };
       img.src = reader.result;
     };
