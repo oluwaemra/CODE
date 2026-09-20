@@ -1,12 +1,11 @@
 // ==========================================================
 // STUDIO — base template interactions
-// Hero slideshow, live clock, mobile menu
+// Hero slideshow, mobile menu
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   initHeroSlideshow();
-  initClock();
   document.getElementById("year").textContent = new Date().getFullYear();
 });
 
@@ -35,8 +34,6 @@ function initMobileMenu() {
 function initHeroSlideshow() {
   const slides = Array.from(document.querySelectorAll(".hero-slide"));
   const dotsWrap = document.getElementById("heroDots");
-  const prevBtn = document.getElementById("prevSlide");
-  const nextBtn = document.getElementById("nextSlide");
   const titleEl = document.getElementById("heroTitle");
   const captionEl = document.querySelector(".hero-caption");
   const linkEl = document.getElementById("heroLink");
@@ -62,10 +59,6 @@ function initHeroSlideshow() {
     return dot;
   });
   if (totalEl) totalEl.textContent = romanNumerals[slides.length - 1] || slides.length;
-  if (slides.length < 2) {
-    prevBtn?.setAttribute("hidden", "");
-    nextBtn?.setAttribute("hidden", "");
-  }
 
   function render(index) {
     slides.forEach((s, i) => s.classList.toggle("is-active", i === index));
@@ -90,8 +83,6 @@ function initHeroSlideshow() {
     timer = setInterval(() => goTo(current + 1), AUTOPLAY_MS);
   }
 
-  prevBtn?.addEventListener("click", () => goTo(current - 1));
-  nextBtn?.addEventListener("click", () => goTo(current + 1));
   dots.forEach((dot, i) => dot.addEventListener("click", () => goTo(i)));
 
   // Pause autoplay while the tab is hidden
@@ -107,22 +98,3 @@ function initHeroSlideshow() {
   resetAutoplay();
 }
 
-/* ---------- Live clock ---------- */
-function initClock({ timeZone = "Africa/Lagos", label = "LAGOS" } = {}) {
-  const el = document.getElementById("heroClock");
-  if (!el) return;
-
-  function tick() {
-    const time = new Intl.DateTimeFormat("en-GB", {
-      timeZone,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(new Date());
-    el.textContent = `${time} · ${label}`;
-  }
-
-  tick();
-  setInterval(tick, 1000);
-}

@@ -27,7 +27,6 @@
      lightened tint, kept for exactly that one job now. */
   --accent-on-photo: #d46a35;
   --header-h: 84px;
-  --meta-h: 34px;
   --gutter: 40px;
   --font: "Inter", -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-editorial: "Fraunces", Georgia, serif; /* headlines, CTAs, nav — the "read this" voice */
@@ -67,6 +66,7 @@ img { max-width: 100%; display: block; }
      longer runs full-bleed behind the header (see .hero), so this just
      needs to occlude whatever scrolls underneath it. */
   background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 .nav { display: flex; align-items: center; gap: 32px; }
@@ -177,54 +177,13 @@ img { max-width: 100%; display: block; }
 .mobile-nav.is-open { transform: translateY(0); }
 .mobile-nav a { font-size: 20px; font-weight: 400; }
 
-/* ---------- Signal / meta bar ---------- */
-.meta-bar {
-  position: fixed;
-  top: var(--header-h);
-  left: 0;
-  right: 0;
-  height: var(--meta-h);
-  z-index: 99;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--gutter);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--fg-faint);
-}
-.meta-status { display: flex; align-items: center; gap: 8px; color: var(--fg-muted); }
-.meta-tagline { display: none; }
-
-@media (min-width: 640px) {
-  .meta-tagline { display: inline; }
-}
-
-.pulse-dot {
-  position: relative;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 0 var(--accent-dim);
-  animation: pulse 2s ease-out infinite;
-}
-@keyframes pulse {
-  0%   { box-shadow: 0 0 0 0 var(--accent-dim); }
-  70%  { box-shadow: 0 0 0 7px rgba(98, 42, 15, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(98, 42, 15, 0); }
-}
-
 /* ---------- Hero — light, picture-heavy ---------- */
 .hero {
   position: relative;
   min-height: 100svh;
   display: grid;
   grid-template-columns: 0.62fr 1fr;
-  padding-top: calc(var(--header-h) + var(--meta-h));
+  padding-top: var(--header-h);
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -239,7 +198,6 @@ img { max-width: 100%; display: block; }
   padding: 56px;
   min-width: 0;
 }
-.hero-eyebrow { margin-bottom: 20px; }
 .hero-title {
   margin: 0 0 20px;
   font-family: var(--font-editorial);
@@ -274,43 +232,6 @@ img { max-width: 100%; display: block; }
 .hero-link .arrow { color: var(--accent-text); transition: transform 0.2s var(--ease); }
 .hero-link:hover .arrow { transform: translateX(4px); }
 
-/* Category strip — a plain horizontal rule below the hero, replacing
-   both the old scrolling ticker and the vertical ruler */
-.category-strip {
-  display: flex;
-  justify-content: center;
-  gap: 32px;
-  padding: 20px 48px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
-  color: var(--fg-faint);
-  box-sizing: border-box;
-}
-
-.hero-status {
-  margin-top: 64px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.hero-status-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--fg-muted);
-}
-.hero-clock {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--fg-faint);
-  font-variant-numeric: tabular-nums;
-  margin-left: 14px;
-}
-
 /* Photo panel — fills its whole grid cell edge-to-edge (picture-heavy:
    no inset margin, no fixed aspect ratio) */
 .hero-frame {
@@ -334,27 +255,6 @@ img { max-width: 100%; display: block; }
 }
 .hero-slide.is-active { opacity: 1; }
 
-.hero-nav {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 3;
-  background: none;
-  border: none;
-  /* Always sits on the photo, regardless of page theme — fixed light
-     color, not the theme's --fg (which is dark in this light theme). */
-  color: #ffffff;
-  font-size: 30px;
-  font-weight: 300;
-  cursor: pointer;
-  opacity: 0.7;
-  padding: 12px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  transition: opacity 0.2s var(--ease), color 0.2s var(--ease);
-}
-.hero-nav:hover { opacity: 1; color: var(--accent-on-photo); }
-.hero-nav--prev { left: 4px; }
-.hero-nav--next { right: 4px; }
 
 .hero-frame-label {
   position: absolute;
@@ -366,7 +266,7 @@ img { max-width: 100%; display: block; }
 }
 .hero-frame-label--top { left: 20px; top: 20px; }
 .hero-frame-label--bottom { right: 20px; bottom: 20px; }
-.hero-frame-label .counter-current { color: var(--fg); }
+.hero-frame-label .counter-current { color: #ffffff; }
 
 .hero-frame .hero-dots {
   position: absolute;
@@ -385,10 +285,6 @@ img { max-width: 100%; display: block; }
   transition: background 0.2s var(--ease);
 }
 .hero-dot.is-active { background: var(--accent-on-photo); }
-
-@media (prefers-reduced-motion: reduce) {
-  .pulse-dot { animation: none; }
-}
 
 /* ---------- About ---------- */
 .about {
@@ -490,17 +386,6 @@ img { max-width: 100%; display: block; }
 .footer-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
 .footer-nav a { font-size: 13px; color: var(--fg-muted); }
 .footer-nav a:hover { color: var(--accent-text); }
-.footer-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--fg-faint);
-  margin: 0;
-}
 .footer-copyright { font-size: 12px; color: var(--fg-faint); margin: 0; }
 
 /* ---------- Portfolio page ---------- */
@@ -509,7 +394,7 @@ img { max-width: 100%; display: block; }
 .page-hero {
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(var(--header-h) + var(--meta-h) + 72px) 24px 48px;
+  padding: calc(var(--header-h) + 72px) 24px 48px;
   text-align: center;
 }
 .page-title {
@@ -676,7 +561,7 @@ img { max-width: 100%; display: block; }
 }
 .founder-photo {
   position: sticky;
-  top: calc(var(--header-h) + var(--meta-h) + 32px);
+  top: calc(var(--header-h) + 32px);
   aspect-ratio: 4 / 5;
 }
 .founder-photo-inner { position: relative; width: 100%; height: 100%; overflow: hidden; }
@@ -1066,11 +951,9 @@ img { max-width: 100%; display: block; }
   .menu-toggle { display: flex; }
   .logo { position: static; transform: none; }
   .site-header { justify-content: space-between; }
-  .meta-bar { padding: 0 20px; }
-  .hero { grid-template-columns: 1fr; padding-top: calc(var(--header-h) + var(--meta-h) + 24px); }
+  .hero { grid-template-columns: 1fr; padding-top: calc(var(--header-h) + 24px); }
   .hero-frame { aspect-ratio: 4 / 3; }
   .hero-info { padding: 32px 24px 8px; }
-  .category-strip { gap: 20px; padding: 16px 24px; }
   .portfolio-teaser { flex-direction: column; align-items: flex-start; gap: 32px; }
   .portfolio-teaser-copy { max-width: none; }
   .portfolio-frame { width: 100%; }
