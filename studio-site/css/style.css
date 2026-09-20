@@ -435,26 +435,25 @@ img { max-width: 100%; display: block; }
 .filter-btn:hover { color: var(--fg); }
 .filter-btn.is-active { color: var(--fg); border-bottom-color: var(--accent-text); }
 
+/* Masonry: CSS columns, so every photo keeps its own proportions. */
 .gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 28px;
+  column-count: 3;
+  column-gap: 20px;
   padding: 0 var(--gutter) 140px;
 }
 .gallery-item {
   position: relative;
   display: block;
-  aspect-ratio: 4 / 5;
+  margin: 0 0 20px;
+  break-inside: avoid;
   overflow: hidden;
   border-radius: 2px;
+  background: var(--bg-elevated);
+  min-height: 200px;
 }
-.gallery-item:nth-child(3n+1) { grid-column: span 2; aspect-ratio: 16 / 10; }
 .gallery-item img {
-  position: absolute;
-  inset: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   transition: transform 0.5s var(--ease);
 }
 .gallery-item:hover img { transform: scale(1.03); }
@@ -492,7 +491,7 @@ img { max-width: 100%; display: block; }
 }
 .gallery-empty,
 .gallery-loading {
-  grid-column: 1 / -1;
+  column-span: all;
   text-align: center;
   padding: 60px 0;
   color: var(--fg-faint);
@@ -957,7 +956,7 @@ img { max-width: 100%; display: block; }
   .portfolio-teaser { flex-direction: column; align-items: flex-start; gap: 32px; }
   .portfolio-teaser-copy { max-width: none; }
   .portfolio-frame { width: 100%; }
-  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+  .gallery-grid { column-count: 2; }
   .process-grid { grid-template-columns: repeat(2, 1fr); }
   .founder-card { grid-template-columns: 1fr; }
   .founder-photo { position: static; max-width: 320px; margin: 0 auto 32px; }
@@ -971,8 +970,7 @@ img { max-width: 100%; display: block; }
 }
 
 @media (max-width: 520px) {
-  .gallery-grid { grid-template-columns: 1fr; }
-  .gallery-item:nth-child(3n+1) { grid-column: span 1; aspect-ratio: 4 / 5; }
+  .gallery-grid { column-count: 1; }
   .filter-bar { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 40px; }
   .process-grid { grid-template-columns: 1fr; }
   .contact-details { grid-template-columns: 1fr; }
