@@ -29,6 +29,18 @@ function setStatus(el, message, tone) {
   el.className = "form-status" + (tone ? ` form-status--${tone}` : "");
 }
 
+// Parses a JSON reply, but if the server sent plain text/HTML instead (a
+// crash or a platform limit), surfaces its status and message rather than
+// the browser's cryptic "string did not match the expected pattern".
+async function readJson(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Server error (${res.status}): ${text.replace(/\s+/g, " ").slice(0, 140)}`);
+  }
+}
+
 // Resizes/compresses an image client-side before upload, so a full-res
 // camera JPEG doesn't blow past the serverless function's request-body
 // limit. Returns { dataBase64, contentType, filename }.
@@ -72,7 +84,7 @@ async function uploadImage(file) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(prepared),
   });
-  const data = await res.json();
+  const data = await readJson(res);
   if (!res.ok || !data.ok) throw new Error(data.error || "Upload failed.");
   return data.url;
 }
@@ -254,7 +266,7 @@ function initPortfolioTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, category, imageUrl, alt, href }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok || !data.ok) throw new Error(data.error || "Could not save item.");
 
       form.reset();
