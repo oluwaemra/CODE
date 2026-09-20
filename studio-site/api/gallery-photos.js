@@ -13,7 +13,9 @@
 const { getGallery } = require("./_lib/kv");
 const { getSessionFromRequest } = require("./_lib/gallery-auth");
 
-module.exports = async function handler(req, res) {
+const safeHandler = require("./_lib/safe-handler");
+
+module.exports = safeHandler(async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -39,4 +41,4 @@ module.exports = async function handler(req, res) {
       photos: gallery.photos,
     },
   });
-};
+});

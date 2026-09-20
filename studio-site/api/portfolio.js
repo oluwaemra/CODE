@@ -3,7 +3,9 @@
 
 const { getPortfolioItems } = require("./_lib/kv");
 
-module.exports = async function handler(req, res) {
+const safeHandler = require("./_lib/safe-handler");
+
+module.exports = safeHandler(async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -11,4 +13,4 @@ module.exports = async function handler(req, res) {
   const items = await getPortfolioItems();
   res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   return res.status(200).json({ ok: true, items });
-};
+});

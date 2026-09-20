@@ -21,7 +21,9 @@ const VALID_CATEGORIES = new Set([
   "featured",
 ]);
 
-module.exports = async function handler(req, res) {
+const safeHandler = require("../_lib/safe-handler");
+
+module.exports = safeHandler(async function handler(req, res) {
   if (rejectIfNotAdmin(req, res)) return;
 
   if (req.method === "GET") {
@@ -115,4 +117,4 @@ module.exports = async function handler(req, res) {
 
   res.setHeader("Allow", "GET, POST, PUT, DELETE");
   return res.status(405).json({ ok: false, error: "Method not allowed" });
-};
+});

@@ -30,7 +30,9 @@ function isRateLimited(key) {
   return record.count > MAX_ATTEMPTS;
 }
 
-module.exports = async function handler(req, res) {
+const safeHandler = require("./_lib/safe-handler");
+
+module.exports = safeHandler(async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ ok: false, error: "Method not allowed" });
@@ -89,4 +91,4 @@ module.exports = async function handler(req, res) {
     ok: true,
     gallery: { slug: gallery.slug, clientName: gallery.clientName },
   });
-};
+});
