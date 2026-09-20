@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/admin-session")
     .then((r) => r.json())
     .then((data) => {
-      if (data.ok) window.location.href = "index.html";
+      if (data.ok) window.location.href = "/admin/index.html";
     })
     .catch(() => {});
 
@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus(data.error || "Sign-in failed.", "error");
         return;
       }
-      window.location.href = "index.html";
+      window.location.href = "/admin/index.html";
     } catch {
       setStatus("Couldn't reach the server. Is the backend deployed?", "error");
     } finally {

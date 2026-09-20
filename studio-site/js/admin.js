@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const session = await fetch("/api/admin-session").then((r) => r.json()).catch(() => ({ ok: false }));
   if (!session.ok) {
-    window.location.href = "login.html";
+    window.location.href = "/admin/login.html";
     return;
   }
   loadingEl.hidden = true;
@@ -122,7 +122,7 @@ function initTabs() {
 function initSignOut() {
   document.getElementById("adminSignOutBtn")?.addEventListener("click", async () => {
     await fetch("/api/admin-logout", { method: "POST" }).catch(() => {});
-    window.location.href = "login.html";
+    window.location.href = "/admin/login.html";
   });
 }
 
