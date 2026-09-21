@@ -3,7 +3,14 @@
 const jwt = require("jsonwebtoken");
 
 const COOKIE_NAME = "gallery_session";
-const TOKEN_TTL = "7d";
+// A gallery session only lives this long past the client's last activity.
+// Each authenticated request re-issues the cookie (a sliding window), and the
+// page pings while it is open — so leaving the gallery for longer than this
+// means the password is asked for again. Keep in step with AWAY_MS in
+// js/client-gallery.js.
+const SESSION_SECONDS = 5 * 60;
+// Bumped when the session rules change, so older long-lived cookies stop working.
+const SESSION_VERSION = 2;
 
 function getJwtSecret() {
   const secret = process.env.GALLERY_JWT_SECRET;
@@ -14,12 +21,13 @@ function getJwtSecret() {
 }
 
 function signGallerySession(slug) {
-  return jwt.sign({ slug }, getJwtSecret(), { expiresIn: TOKEN_TTL });
+  return jwt.sign({ slug, v: SESSION_VERSION }, getJwtSecret(), { expiresIn: SESSION_SECONDS });
 }
 
 function verifyGallerySession(token) {
   try {
-    return jwt.verify(token, getJwtSecret());
+    const payload = jwt.verify(token, getJwtSecret());
+    return payload.v === SESSION_VERSION ? payload : null;
   } catch {
     return null;
   }
@@ -46,7 +54,7 @@ function setSessionCookie(res, token) {
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
-    `Max-Age=${7 * 24 * 60 * 60}`,
+    `Max-Age=${SESSION_SECONDS}`,
   ];
   if (isProd) parts.push("Secure");
   res.setHeader("Set-Cookie", parts.join("; "));
@@ -68,6 +76,7 @@ function getSessionFromRequest(req) {
 
 module.exports = {
   COOKIE_NAME,
+  SESSION_SECONDS,
   signGallerySession,
   verifyGallerySession,
   setSessionCookie,

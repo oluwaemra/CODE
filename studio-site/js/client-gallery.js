@@ -74,12 +74,22 @@ document.addEventListener("DOMContentLoaded", () => {
     return favOnly ? gallery.photos.filter((p) => likes.has(p.src)) : gallery.photos;
   }
 
+  // The file's original name. New uploads store it; for older ones we recover it
+  // from the storage path by dropping the timestamp/random suffix storage adds.
+  function originalName(photo, index) {
+    if (photo.name) return photo.name;
+    let segment = "";
+    try {
+      segment = decodeURIComponent(new URL(photo.src).pathname.split("/").pop() || "");
+    } catch { /* fall through to the numbered fallback */ }
+    const match = segment.match(/^(.*?)(\.[A-Za-z0-9]+)?$/);
+    const ext = (match && match[2]) || ".jpg";
+    const base = ((match && match[1]) || "").replace(/-[A-Za-z0-9]{16,}$/, "").replace(/^\d{10,}-/, "");
+    return base ? base + ext : `${gallery.slug}-${String(index + 1).padStart(3, "0")}${ext}`;
+  }
+
   function fileName(photo, index, used) {
-    let name = photo.name;
-    if (!name) {
-      const ext = (photo.src.split("?")[0].match(/\.(jpe?g|png|webp)$/i) || [".jpg"])[0];
-      name = `${gallery.slug}-${String(index + 1).padStart(3, "0")}${ext}`;
-    }
+    let name = originalName(photo, index);
     // Two different photos can share a file name (e.g. two cameras); keep both.
     if (used.has(name)) {
       const dot = name.lastIndexOf(".");
@@ -93,6 +103,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     used.add(name);
     return name;
+  }
+
+  // Save one photo under its original name. (A plain link would save it under
+  // the storage service's renamed file, so fetch it and save the bytes ourselves.)
+  async function saveOne(photo) {
+    const name = originalName(photo, gallery.photos.indexOf(photo));
+    try {
+      const res = await fetch(photo.src);
+      if (!res.ok) throw new Error("fetch failed");
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      window.location.href = downloadUrl(photo.src); // still gets the file, just renamed
+    }
   }
 
   // ---------- likes ----------
@@ -296,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <span class="gv-lb-count"></span>
         <div class="gv-lb-actions">
           <button type="button" class="gv-icon gv-lb-like" aria-label="Add to favourites">${ICONS.heart}</button>
-          <a class="gv-icon gv-lb-download" aria-label="Download this photo" hidden>${ICONS.download}</a>
+          <button type="button" class="gv-icon gv-lb-download" aria-label="Download this photo" hidden>${ICONS.download}</button>
           <button type="button" class="gv-icon gv-lb-close" aria-label="Close">${ICONS.close}</button>
         </div>
       </div>
@@ -331,7 +361,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       count.textContent = `${index + 1} / ${list.length}`;
       dlLink.hidden = !gallery.downloadEnabled;
-      if (gallery.downloadEnabled) dlLink.href = downloadUrl(photo.src);
       box.querySelector(".gv-lb-prev").hidden = box.querySelector(".gv-lb-next").hidden = list.length < 2;
       syncLike();
     }
@@ -365,6 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
     box.querySelector(".gv-lb-prev").addEventListener("click", () => show(index - 1));
     box.querySelector(".gv-lb-next").addEventListener("click", () => show(index + 1));
     likeBtn.addEventListener("click", () => current() && toggleLike(current().src));
+    dlLink.addEventListener("click", () => current() && saveOne(current()));
     box.addEventListener("click", (e) => { if (e.target === box) close(); });
 
     document.addEventListener("keydown", (e) => {
@@ -414,6 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loginSection.hidden = true;
     viewSection.hidden = false;
     document.body.classList.add("in-gallery");
+    startWatch();
     // No photos yet → skip the cover and go straight to the (empty) gallery.
     cover.hidden = !first;
     app.hidden = Boolean(first);
@@ -427,11 +458,98 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function showLogin() {
+    stopWatch();
     lightbox.close();
     viewSection.hidden = true;
     loginSection.hidden = false;
     document.body.classList.remove("in-gallery");
     gallery = null;
+  }
+
+  // ---------- ask for the password again after being away ----------
+  // The server is the authority (the session cookie only lives 5 minutes past
+  // the last ping — see SESSION_SECONDS in api/_lib/gallery-auth.js); this just
+  // keeps the session alive while the gallery is open and locks the page as
+  // soon as we notice the client was away too long.
+  const AWAY_MS = 5 * 60 * 1000;
+  const HEARTBEAT_MS = 60 * 1000;
+  const LOCK_MESSAGE = "For your security, please enter your password again.";
+  let hiddenAt = null;
+  let lastTick = Date.now();
+  let heartbeat = null;
+
+  function pingBody() {
+    return JSON.stringify({ ping: true });
+  }
+
+  async function ping() {
+    const res = await fetch("/api/gallery-photos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: pingBody(),
+    });
+    return res.status !== 401;
+  }
+
+  async function lock() {
+    const slug = gallery && gallery.slug;
+    stopWatch();
+    try {
+      await fetch("/api/gallery-logout", { method: "POST" });
+    } catch { /* best effort — the cookie expires by itself anyway */ }
+    showLogin();
+    if (slug && loginForm.slug) loginForm.slug.value = slug;
+    setLoginStatus(LOCK_MESSAGE, null);
+    loginForm.password?.focus();
+  }
+
+  async function tick() {
+    const now = Date.now();
+    // A long gap between ticks means the device slept — treat it as being away.
+    if (now - lastTick > AWAY_MS) return lock();
+    lastTick = now;
+    try {
+      if (!(await ping())) lock();
+    } catch { /* offline for a moment — try again next tick */ }
+  }
+
+  function onVisibility() {
+    if (!gallery) return;
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      clearInterval(heartbeat);
+      heartbeat = null;
+      // Record "last seen" precisely as the client leaves.
+      navigator.sendBeacon?.("/api/gallery-photos", new Blob([pingBody()], { type: "application/json" }));
+      return;
+    }
+    const awayFor = hiddenAt ? Date.now() - hiddenAt : 0;
+    hiddenAt = null;
+    if (awayFor > AWAY_MS) return lock();
+    lastTick = Date.now();
+    ping().then((ok) => { if (!ok) lock(); }).catch(() => {});
+    heartbeat = setInterval(tick, HEARTBEAT_MS);
+  }
+
+  function onPageHide() {
+    if (gallery) navigator.sendBeacon?.("/api/gallery-photos", new Blob([pingBody()], { type: "application/json" }));
+  }
+
+  function startWatch() {
+    stopWatch();
+    hiddenAt = document.hidden ? Date.now() : null;
+    lastTick = Date.now();
+    if (!document.hidden) heartbeat = setInterval(tick, HEARTBEAT_MS);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+  }
+
+  function stopWatch() {
+    clearInterval(heartbeat);
+    heartbeat = null;
+    hiddenAt = null;
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pagehide", onPageHide);
   }
 
   // ---------- sign in / out ----------
