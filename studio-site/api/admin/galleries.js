@@ -10,7 +10,7 @@
 
 const bcrypt = require("bcryptjs");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
-const { getGallery, saveGallery, deleteGallery, listGalleries } = require("../_lib/kv");
+const { getGallery, saveGallery, deleteGallery, listGalleries, getLikes } = require("../_lib/kv");
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
@@ -26,7 +26,15 @@ module.exports = safeHandler(async function handler(req, res) {
 
   if (req.method === "GET") {
     const galleries = await listGalleries();
-    return res.status(200).json({ ok: true, galleries: galleries.map(omitPasswordHash) });
+    // Attach each gallery's client favourites (only for photos still present).
+    const withLikes = await Promise.all(
+      galleries.map(async (gallery) => {
+        const srcs = new Set((gallery.photos || []).map((photo) => photo.src));
+        const likes = (await getLikes(gallery.slug)).filter((src) => srcs.has(src));
+        return { ...omitPasswordHash(gallery), likes };
+      })
+    );
+    return res.status(200).json({ ok: true, galleries: withLikes });
   }
 
   if (req.method === "POST") {

@@ -10,6 +10,9 @@
 //   portfolio:items         -> JSON array of portfolio items
 //   gallery:<slug>          -> JSON object for one client gallery
 //   (gallery slugs are discovered via redis.keys("gallery:*"))
+//   likes:<slug>            -> Redis SET of photo srcs the client has favourited
+//                              (its own key + atomic SADD/SREM, so a client liking
+//                              a photo never races with an admin editing the gallery)
 
 const { Redis } = require("@upstash/redis");
 
@@ -55,7 +58,22 @@ async function saveGallery(gallery) {
 }
 
 async function deleteGallery(slug) {
-  await getClient().del(galleryKey(slug));
+  await getClient().del(galleryKey(slug), likesKey(slug));
+}
+
+function likesKey(slug) {
+  return `likes:${slug}`;
+}
+
+async function getLikes(slug) {
+  const members = await getClient().smembers(likesKey(slug));
+  return Array.isArray(members) ? members.map(String) : [];
+}
+
+async function setLike(slug, src, liked) {
+  const redis = getClient();
+  if (liked) await redis.sadd(likesKey(slug), src);
+  else await redis.srem(likesKey(slug), src);
 }
 
 async function listGalleries() {
@@ -73,4 +91,6 @@ module.exports = {
   saveGallery,
   deleteGallery,
   listGalleries,
+  getLikes,
+  setLike,
 };

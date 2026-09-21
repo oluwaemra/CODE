@@ -353,6 +353,16 @@ function initGalleriesTab() {
           <p class="form-status admin-password-status" role="status"></p>
         </form>
 
+        <div class="admin-fav-bar" hidden>
+          <span class="admin-fav-summary"></span>
+          <label class="admin-checkbox-label">
+            <input type="checkbox" class="admin-fav-only">
+            Favourites only
+          </label>
+          <button type="button" class="btn btn--outline btn--sm admin-fav-copy">Copy favourites list</button>
+          <p class="form-status admin-fav-status" role="status"></p>
+        </div>
+
         <div class="admin-photo-grid"></div>
 
         <form class="admin-inline-form admin-add-photo-form">
@@ -363,7 +373,10 @@ function initGalleriesTab() {
       `;
 
       card.querySelector("h3").textContent = gallery.clientName;
-      card.querySelector(".admin-gallery-slug").textContent = `/${gallery.slug} · ${gallery.photos.length} photo${gallery.photos.length === 1 ? "" : "s"}`;
+      const likedSrcs = new Set(gallery.likes || []);
+      card.querySelector(".admin-gallery-slug").textContent =
+        `/${gallery.slug} · ${gallery.photos.length} photo${gallery.photos.length === 1 ? "" : "s"}` +
+        (likedSrcs.size ? ` · ♥ ${likedSrcs.size} favourite${likedSrcs.size === 1 ? "" : "s"}` : "");
 
       const downloadToggle = card.querySelector(".admin-download-toggle");
       downloadToggle.checked = gallery.downloadEnabled;
@@ -405,10 +418,35 @@ function initGalleriesTab() {
       });
 
       const photoGrid = card.querySelector(".admin-photo-grid");
+      const photoName = (photo) => photo.name || decodeURIComponent(photo.src.split("?")[0].split("/").pop() || "photo");
+
+      const favBar = card.querySelector(".admin-fav-bar");
+      if (likedSrcs.size) {
+        favBar.hidden = false;
+        favBar.querySelector(".admin-fav-summary").textContent =
+          `${likedSrcs.size} of ${gallery.photos.length} photos favourited by the client`;
+        favBar.querySelector(".admin-fav-only").addEventListener("change", (event) => {
+          photoGrid.querySelectorAll(".admin-photo-thumb").forEach((el) => {
+            el.hidden = event.target.checked && !el.classList.contains("is-liked");
+          });
+        });
+        favBar.querySelector(".admin-fav-copy").addEventListener("click", async () => {
+          const statusEl3 = favBar.querySelector(".admin-fav-status");
+          const names = gallery.photos.filter((p) => likedSrcs.has(p.src)).map(photoName);
+          try {
+            await navigator.clipboard.writeText(names.join("\n"));
+            setStatus(statusEl3, `Copied ${names.length} file name${names.length === 1 ? "" : "s"}.`, "success");
+          } catch {
+            setStatus(statusEl3, "Couldn't copy — your browser blocked clipboard access.", "error");
+          }
+        });
+      }
+
       gallery.photos.forEach((photo) => {
         const thumb = document.createElement("div");
-        thumb.className = "admin-photo-thumb";
-        thumb.innerHTML = `<img src="${photo.thumb || photo.src}" alt="${photo.alt || ""}"><button type="button" class="admin-photo-remove" aria-label="Remove photo">×</button>`;
+        thumb.className = "admin-photo-thumb" + (likedSrcs.has(photo.src) ? " is-liked" : "");
+        thumb.title = photoName(photo);
+        thumb.innerHTML = `<img src="${photo.thumb || photo.src}" alt="${photo.alt || ""}"><span class="admin-photo-like" aria-label="Favourited by the client">♥</span><button type="button" class="admin-photo-remove" aria-label="Remove photo">×</button>`;
         thumb.querySelector(".admin-photo-remove").addEventListener("click", async () => {
           if (!confirm("Remove this photo from the gallery?")) return;
           const nextPhotos = gallery.photos.filter((p) => p.src !== photo.src);
@@ -445,7 +483,7 @@ function initGalleriesTab() {
             } catch (err) {
               console.warn("Preview upload failed for", file.name, err);
             }
-            newPhotos.push({ src: url, thumb, alt: `${gallery.clientName} — photo` });
+            newPhotos.push({ src: url, thumb, name: file.name, alt: `${gallery.clientName} — photo` });
           }
           const res = await fetch("/api/admin/galleries", {
             method: "PUT",

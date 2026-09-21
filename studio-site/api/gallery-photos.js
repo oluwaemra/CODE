@@ -1,5 +1,6 @@
 // ==========================================================
-// GET /api/gallery-photos
+// GET  /api/gallery-photos  -> the photo set + the client's liked photos
+// POST /api/gallery-photos  -> { src, liked } like / unlike one photo
 //
 // Returns the photo set for the gallery named in the caller's session
 // cookie (set by /api/gallery-login). No password is re-checked here —
@@ -10,14 +11,20 @@
 // move to short-lived signed URLs for real client deliverables).
 // ==========================================================
 
-const { getGallery } = require("./_lib/kv");
+const { getGallery, getLikes, setLike } = require("./_lib/kv");
 const { getSessionFromRequest } = require("./_lib/gallery-auth");
 
 const safeHandler = require("./_lib/safe-handler");
 
+// Only report likes for photos still in the gallery (removed photos drop out).
+function currentLikes(gallery, likes) {
+  const srcs = new Set(gallery.photos.map((photo) => photo.src));
+  return likes.filter((src) => srcs.has(src));
+}
+
 module.exports = safeHandler(async function handler(req, res) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
@@ -32,6 +39,26 @@ module.exports = safeHandler(async function handler(req, res) {
     return res.status(404).json({ ok: false, error: "Gallery not found." });
   }
 
+  if (req.method === "POST") {
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({ ok: false, error: "Invalid JSON body" });
+      }
+    }
+    const { src, liked } = body || {};
+    if (typeof src !== "string" || typeof liked !== "boolean") {
+      return res.status(400).json({ ok: false, error: "src and liked are required." });
+    }
+    if (!gallery.photos.some((photo) => photo.src === src)) {
+      return res.status(404).json({ ok: false, error: "Photo not found in this gallery." });
+    }
+    await setLike(gallery.slug, src, liked);
+    return res.status(200).json({ ok: true, likes: currentLikes(gallery, await getLikes(gallery.slug)) });
+  }
+
   return res.status(200).json({
     ok: true,
     gallery: {
@@ -39,6 +66,7 @@ module.exports = safeHandler(async function handler(req, res) {
       clientName: gallery.clientName,
       downloadEnabled: !!gallery.downloadEnabled,
       photos: gallery.photos,
+      likes: currentLikes(gallery, await getLikes(gallery.slug)),
     },
   });
 });

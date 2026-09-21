@@ -102,15 +102,43 @@
   </section>
 
   <!-- ============ GALLERY VIEW (hidden until authenticated) ============ -->
-  <section class="gallery-view" id="galleryViewSection" hidden>
-    <div class="gallery-view-header">
-      <div>
-        <p class="section-eyebrow section-eyebrow--tight"><span class="eyebrow-num">✦</span> Welcome back</p>
-        <h2 id="galleryClientName">—</h2>
+  <section class="gv" id="galleryViewSection" hidden>
+
+    <div class="gv-cover" id="gvCover">
+      <div class="gv-cover-bg" id="gvCoverBg"></div>
+      <div class="gv-cover-inner">
+        <h1 class="gv-cover-title" id="galleryClientName">—</h1>
+        <button type="button" class="gv-cover-btn" id="gvEnter">View Gallery</button>
       </div>
-      <button type="button" class="btn btn--outline" id="gallerySignOutBtn">Sign Out</button>
+      <p class="gv-cover-studio">Emrashotit Studios</p>
     </div>
-    <div class="gallery-photo-grid" id="galleryPhotoGrid"></div>
+
+    <div class="gv-app" id="gvApp" hidden>
+      <header class="gv-bar">
+        <div class="gv-bar-title">
+          <span class="gv-title" id="gvTitle"></span>
+          <span class="gv-studio">Emrashotit Studios</span>
+        </div>
+        <div class="gv-actions">
+          <button type="button" class="gv-icon" id="gvFavFilter" aria-pressed="false" aria-label="Show only my favourites" title="Favourites">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.1C1.5 8.3 3.4 5 6.6 5c2 0 3.7 1.1 5.4 3.2C13.7 6.1 15.4 5 17.4 5c3.2 0 5.1 3.3 3.9 6.4-1.8 4.5-9.3 9.1-9.3 9.1z"/></svg>
+            <span class="gv-count" id="gvFavCount" hidden>0</span>
+          </button>
+          <button type="button" class="gv-icon" id="gvShare" aria-label="Share gallery link" title="Share">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M12 3 7.5 7.5M12 3l4.5 4.5M5 12v7.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V12"/></svg>
+          </button>
+          <button type="button" class="gv-icon" id="gvDownloadAll" aria-label="Download all photos as a zip" title="Download all (zip)" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M12 15l-4.5-4.5M12 15l4.5-4.5M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>
+          </button>
+          <button type="button" class="gv-signout" id="gallerySignOutBtn">Sign out</button>
+        </div>
+      </header>
+
+      <p class="gv-status" id="gvStatus" role="status" aria-live="polite" hidden></p>
+      <div class="gv-grid" id="galleryPhotoGrid"></div>
+      <p class="gv-empty" id="gvEmpty" hidden></p>
+    </div>
+
   </section>
 
 </main>

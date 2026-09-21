@@ -238,12 +238,42 @@
   border-radius: 50%;
   border: none;
   background: rgba(13, 13, 13, 0.8);
-  color: var(--fg);
+  color: #ffffff;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
 .admin-photo-remove:hover { background: #ff6b6b; color: #0d0d0d; }
+.admin-photo-like {
+  display: none;
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  min-width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: rgba(13, 13, 13, 0.8);
+  color: #ff5a5f;
+  font-size: 12px;
+  line-height: 1;
+}
+.admin-photo-thumb.is-liked .admin-photo-like { display: flex; }
+.admin-photo-thumb.is-liked { outline: 2px solid #ff5a5f; outline-offset: -2px; }
+.admin-fav-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+.admin-fav-summary { color: var(--fg-muted); margin-right: auto; }
+.admin-fav-bar .form-status { margin: 0; font-size: 0.8rem; }
 
 @media (max-width: 640px) {
   .admin-header { flex-wrap: wrap; }
