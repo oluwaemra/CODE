@@ -990,7 +990,11 @@ body.gv-noscroll { overflow: hidden; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  align-items: start;
+  /* Stretch (not start) so all three cards share the tallest card's height —
+     with the tag row already reserving 2 lines, this lines up Essential and
+     Editorial's buttons exactly; Signature still reads as "the odd one out"
+     via its border/background/badge and translateY, not a height mismatch. */
+  align-items: stretch;
 }
 .pricing-card {
   border: 1px solid var(--border);
@@ -1022,9 +1026,14 @@ body.gv-noscroll { overflow: hidden; }
 .pricing-card-tag {
   font-family: var(--mono);
   font-size: 10px;
+  line-height: 1.5;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--fg-faint);
+  /* Reserve room for 2 lines so a longer tag (e.g. Editorial's) doesn't push
+     that card's name/price down relative to its shorter-tag neighbors. */
+  min-height: 3em;
+  display: block;
 }
 .pricing-card-name { margin: 6px 0 10px; font-family: var(--font-editorial); font-size: 1.5rem; font-weight: 500; }
 .pricing-card-price {
