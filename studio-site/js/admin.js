@@ -51,6 +51,12 @@ async function mapWithConcurrency(items, limit, fn) {
   return results;
 }
 
+function formatSpeed(bytesPerSecond) {
+  if (bytesPerSecond >= 1024 * 1024) return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+  if (bytesPerSecond >= 1024) return `${Math.round(bytesPerSecond / 1024)} KB/s`;
+  return `${Math.round(bytesPerSecond)} B/s`;
+}
+
 // Parses a JSON reply, but if the server sent plain text/HTML instead (a
 // crash or a platform limit), surfaces its status and message rather than
 // the browser's cryptic "string did not match the expected pattern".
@@ -404,8 +410,11 @@ function initGalleriesTab() {
           <p class="form-status admin-photo-status" role="status"></p>
         </form>
         <div class="admin-progress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100">
-          <div class="admin-progress-track"><div class="admin-progress-fill"></div></div>
-          <span class="admin-progress-pct">0%</span>
+          <div class="admin-progress-row">
+            <div class="admin-progress-track"><div class="admin-progress-fill"></div></div>
+            <span class="admin-progress-pct">0%</span>
+          </div>
+          <p class="admin-progress-label"></p>
         </div>
       `;
 
@@ -501,9 +510,11 @@ function initGalleriesTab() {
 
       const UPLOAD_CONCURRENCY = 5;
       const addPhotoForm = card.querySelector(".admin-add-photo-form");
+      const submitBtn2 = addPhotoForm.querySelector("button[type=submit]");
       const progressWrap = card.querySelector(".admin-progress");
       const progressFill = card.querySelector(".admin-progress-fill");
       const progressPct = card.querySelector(".admin-progress-pct");
+      const progressLabel = card.querySelector(".admin-progress-label");
 
       addPhotoForm.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -511,16 +522,40 @@ function initGalleriesTab() {
         const files = Array.from(addPhotoForm.photo.files || []);
         if (!files.length) return;
 
-        setStatus(statusEl2, `Uploading ${files.length} photo(s) at full quality…`, null);
+        setStatus(statusEl2, "", null);
+        submitBtn2.disabled = true;
 
         // Bytes sent per file, kept in sync as each file's XHR reports
         // progress, so the bar reflects the whole batch, not just one file.
         const sentPerFile = new Array(files.length).fill(0);
         const totalBytes = files.reduce((sum, f) => sum + f.size, 0) || 1;
+        const failedNames = [];
+        let completed = 0;
+        // Photos are saved to the gallery as each one finishes, not all in one
+        // request at the end — chained so two photos finishing close together
+        // never race each other overwriting the gallery's photo list, and a
+        // late failure can't lose photos that already succeeded.
+        let saveChain = Promise.resolve(gallery.photos.slice());
+
         progressWrap.hidden = false;
         progressWrap.setAttribute("aria-valuenow", "0");
         progressFill.style.width = "0%";
         progressPct.textContent = "0%";
+        progressLabel.textContent = `0 of ${files.length} photos uploaded`;
+
+        let lastSampleAt = performance.now();
+        let lastSampleBytes = 0;
+        let speedLabel = "";
+        const speedTimer = setInterval(() => {
+          const now = performance.now();
+          const bytes = sentPerFile.reduce((a, b) => a + b, 0);
+          const elapsed = (now - lastSampleAt) / 1000;
+          const bps = elapsed > 0 ? (bytes - lastSampleBytes) / elapsed : 0;
+          speedLabel = bps > 512 ? ` · ${formatSpeed(bps)}` : "";
+          lastSampleAt = now;
+          lastSampleBytes = bytes;
+          updateProgress();
+        }, 500);
 
         function updateProgress() {
           const sent = sentPerFile.reduce((a, b) => a + b, 0);
@@ -528,16 +563,23 @@ function initGalleriesTab() {
           progressFill.style.width = `${pct}%`;
           progressPct.textContent = `${pct}%`;
           progressWrap.setAttribute("aria-valuenow", String(pct));
+          progressLabel.textContent = `${completed} of ${files.length} photo${files.length === 1 ? "" : "s"} uploaded${speedLabel}`;
         }
 
-        const results = await mapWithConcurrency(files, UPLOAD_CONCURRENCY, async (file, i) => {
-          const url = await uploadGalleryPhotoFullQuality(file, (loaded) => {
-            sentPerFile[i] = loaded;
+        await mapWithConcurrency(files, UPLOAD_CONCURRENCY, async (file, i) => {
+          let url;
+          try {
+            url = await uploadGalleryPhotoFullQuality(file, (loaded) => {
+              sentPerFile[i] = loaded;
+              updateProgress();
+            });
+          } catch (err) {
+            sentPerFile[i] = file.size; // count it "done" for the bar even though it failed
+            failedNames.push(file.name);
+            console.error(`Upload failed for ${file.name}:`, err);
             updateProgress();
-          });
-          sentPerFile[i] = file.size;
-          updateProgress();
-
+            return;
+          }
           // A small preview for the client's grid; the download button still
           // serves the untouched original. If the preview fails, the photo
           // still works (the grid just falls back to the original).
@@ -547,33 +589,50 @@ function initGalleriesTab() {
           } catch (err) {
             console.warn("Preview upload failed for", file.name, err);
           }
-          return { src: url, thumb, name: file.name, alt: `${gallery.clientName} — photo` };
+          sentPerFile[i] = file.size;
+          const photo = { src: url, thumb, name: file.name, alt: `${gallery.clientName} — photo` };
+
+          saveChain = saveChain.then(async (currentPhotos) => {
+            try {
+              const updated = [...currentPhotos, photo];
+              const res = await fetch("/api/admin/galleries", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ slug: gallery.slug, photos: updated }),
+              });
+              const data = await res.json();
+              if (!res.ok || !data.ok) throw new Error(data.error || "Couldn't save this photo.");
+              completed++;
+              updateProgress();
+              return updated;
+            } catch (err) {
+              failedNames.push(file.name);
+              console.error(`Couldn't save ${file.name}:`, err);
+              updateProgress();
+              return currentPhotos; // keep the chain alive for the rest of the batch
+            }
+          });
+          await saveChain;
         });
 
-        progressWrap.hidden = true;
+        clearInterval(speedTimer);
+        updateProgress();
+        submitBtn2.disabled = false;
 
-        const newPhotos = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
-        const failedCount = results.length - newPhotos.length;
-
-        try {
-          if (newPhotos.length) {
-            const res = await fetch("/api/admin/galleries", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ slug: gallery.slug, photos: [...gallery.photos, ...newPhotos] }),
-            });
-            const data = await res.json();
-            if (!res.ok || !data.ok) throw new Error(data.error || "Failed to save photos.");
-          }
-          if (failedCount) {
-            setStatus(statusEl2, `Added ${newPhotos.length} of ${files.length} — ${failedCount} failed. Try those again.`, "error");
-          } else {
-            setStatus(statusEl2, "Added.", "success");
-          }
-          if (newPhotos.length) loadGalleries();
-        } catch (err) {
-          setStatus(statusEl2, err.message || "Something went wrong.", "error");
+        if (!failedNames.length) {
+          setStatus(statusEl2, `Added ${completed} photo${completed === 1 ? "" : "s"}.`, "success");
+          addPhotoForm.reset();
+        } else {
+          setStatus(
+            statusEl2,
+            `Added ${completed} of ${files.length} — failed: ${failedNames.join(", ")}. Select just those and try again.`,
+            "error"
+          );
         }
+        // Give the admin a moment to read the result before the card
+        // re-renders (loadGalleries rebuilds the whole list, which would
+        // otherwise wipe this message and the progress bar instantly).
+        setTimeout(loadGalleries, failedNames.length ? 5000 : 1500);
       });
 
       list.insertBefore(card, emptyEl);

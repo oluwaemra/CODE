@@ -217,10 +217,17 @@
 .admin-inline-form .form-status { margin: 0; font-size: 0.8rem; }
 
 .admin-progress {
+  margin: -8px 0 16px;
+}
+.admin-progress-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: -8px 0 16px;
+}
+.admin-progress-label {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
 }
 .admin-progress-track {
   flex: 1;
