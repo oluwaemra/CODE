@@ -58,16 +58,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Storage lives on another origin, where browsers ignore the `download`
-  // attribute; this query param makes the storage service itself send the
-  // original file as a download instead of opening it in a tab.
+  // attribute — saveOne() below fetches the bytes itself so it can force a
+  // real download under the original filename. This is only the fallback
+  // for when that fetch fails (e.g. offline): it just opens the raw file,
+  // still under the storage service's own name, rather than downloading it.
   function downloadUrl(src) {
-    try {
-      const url = new URL(src);
-      url.searchParams.set("download", "1");
-      return url.toString();
-    } catch {
-      return src;
-    }
+    return src;
   }
 
   function visiblePhotos() {

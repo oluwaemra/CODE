@@ -104,26 +104,26 @@ async function uploadImage(file, options) {
 // Client gallery photos: uploaded at FULL original quality, no resize —
 // these are deliverables clients download, not web thumbnails. A normal
 // POST can't carry a full-res camera JPEG (serverless functions cap
-// request bodies at 4.5MB), so this uploads the original file bytes
-// straight to Vercel Blob storage instead, using a short-lived token from
-// /api/admin/gallery-upload-token. See that file's comments for why.
-let blobClientUploadPromise = null;
-function loadBlobClientUpload() {
-  if (!blobClientUploadPromise) {
-    // Pinned to the installed @vercel/blob version (package.json) so this
-    // never silently drifts to a breaking client-library update.
-    blobClientUploadPromise = import("https://esm.sh/@vercel/blob@2.8.0/client").then((m) => m.upload);
-  }
-  return blobClientUploadPromise;
-}
-
+// request bodies at 4.5MB), so this fetches a short-lived presigned R2 URL
+// from /api/admin/gallery-upload-token and PUTs the original file bytes
+// straight to R2 from the browser, bypassing that limit entirely.
 async function uploadGalleryPhotoFullQuality(file) {
-  const upload = await loadBlobClientUpload();
-  const blob = await upload(file.name, file, {
-    access: "public",
-    handleUploadUrl: "/api/admin/gallery-upload-token",
+  const tokenRes = await fetch("/api/admin/gallery-upload-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, contentType: file.type }),
   });
-  return blob.url;
+  const tokenData = await tokenRes.json();
+  if (!tokenRes.ok || !tokenData.ok) throw new Error(tokenData.error || "Couldn't start upload.");
+
+  const putRes = await fetch(tokenData.uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type },
+    body: file,
+  });
+  if (!putRes.ok) throw new Error("Upload failed.");
+
+  return tokenData.publicUrl;
 }
 
 /* ---------- Tabs ---------- */

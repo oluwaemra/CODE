@@ -6,48 +6,76 @@
 // request-body limit that real camera JPEGs blow past, so full-quality
 // files can't be routed through a normal POST endpoint like upload.js does.
 //
-// Instead, this issues a short-lived, admin-gated token that lets the
-// browser (js/admin.js) upload the ORIGINAL file bytes straight to Vercel
-// Blob storage — bypassing this function's body entirely. See:
-// https://vercel.com/docs/vercel-blob/client-upload
+// Instead, this issues a short-lived, admin-gated presigned PUT URL that
+// lets the browser (js/admin.js) upload the ORIGINAL file bytes straight to
+// R2 — bypassing this function's body entirely.
+//
+// Body: { filename: string, contentType: string }
+// Response: { ok: true, uploadUrl, publicUrl }
+//   - uploadUrl: PUT the raw file bytes here directly from the browser.
+//   - publicUrl: where the file will be reachable once the PUT succeeds —
+//     save this on the gallery record.
 
-const { handleUpload } = require("@vercel/blob/client");
+const crypto = require("crypto");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { getR2Client, publicUrlFor, missingEnv } = require("../_lib/r2");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
 
+// Advisory only — a presigned PUT URL has no built-in max-size enforcement,
+// unlike upload.js's buffer check. Fine for a trusted, single-admin uploader;
+// add a Worker-side size check before opening this up to untrusted callers.
 const MAX_BYTES = 100 * 1024 * 1024; // 100MB per file — generous headroom above any realistic full-res JPEG
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const URL_TTL_SECONDS = 5 * 60;
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
-  // Checked up front, before handing out a token — handleUpload's own
-  // callback runs per-upload-request, but we want zero tokens issued to
-  // anyone without an admin session, full stop.
   if (rejectIfNotAdmin(req, res)) return;
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error("Missing BLOB_READ_WRITE_TOKEN — add the Blob storage integration in Vercel.");
+  const missing = missingEnv();
+  if (missing.length) {
+    console.error(`File storage is not configured — missing env vars: ${missing.join(", ")}. See api/README.md.`);
     return res.status(500).json({ ok: false, error: "File storage is not configured yet." });
   }
 
+  let body = req.body;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      return res.status(400).json({ ok: false, error: "Invalid JSON body" });
+    }
+  }
+  body = body || {};
+
+  const { filename, contentType } = body;
+  if (!filename || !contentType) {
+    return res.status(400).json({ ok: false, error: "filename and contentType are required." });
+  }
+  if (!ALLOWED_TYPES.has(contentType)) {
+    return res.status(400).json({ ok: false, error: `Unsupported file type: ${contentType}` });
+  }
+
+  const safeName = String(filename).replace(/[^a-zA-Z0-9.\-_]/g, "-");
+  const key = `galleries/${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeName}`;
+
   try {
-    // No onUploadCompleted — we don't rely on Vercel's post-upload webhook
-    // for anything. js/admin.js writes the new photo into the gallery
-    // record itself, in the same request, right after upload() resolves.
-    const jsonResponse = await handleUpload({
-      body: req.body,
-      request: req,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ALLOWED_TYPES,
-        maximumSizeInBytes: MAX_BYTES,
-        addRandomSuffix: true,
+    const uploadUrl = await getSignedUrl(
+      getR2Client(),
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key,
+        ContentType: contentType,
       }),
-    });
-    return res.status(200).json(jsonResponse);
+      { expiresIn: URL_TTL_SECONDS }
+    );
+    return res.status(200).json({ ok: true, uploadUrl, publicUrl: publicUrlFor(key), maxBytes: MAX_BYTES });
   } catch (err) {
     console.error("Gallery upload token error:", err);
-    return res.status(400).json({ ok: false, error: err.message || "Upload failed." });
+    return res.status(500).json({ ok: false, error: "Couldn't start upload." });
   }
 };

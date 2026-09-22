@@ -11,8 +11,9 @@
     "seed": "node scripts/seed-demo-data.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.687.0",
+    "@aws-sdk/s3-request-presigner": "^3.687.0",
     "@upstash/redis": "^1.38.3",
-    "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3"
   },

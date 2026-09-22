@@ -1,20 +1,21 @@
 // POST /api/admin/upload
 //
 // Accepts a base64-encoded image (already resized/compressed client-side —
-// see js/admin.js) and stores it in Vercel Blob, returning its public URL.
+// see js/admin.js) and stores it in Cloudflare R2, returning its public URL.
 //
 // Body: { filename: string, contentType: string, dataBase64: string }
 //
-// Requires the "Blob" storage integration to be added to the Vercel
-// project (Storage tab -> Create Database -> Blob), which auto-injects
-// BLOB_READ_WRITE_TOKEN.
+// Requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+// R2_BUCKET_NAME, and R2_PUBLIC_BASE_URL — see api/README.md.
 //
 // Note: images stored here get a public, unlisted URL — anyone with the
 // exact link can view it, same tradeoff called out in api/README.md for
 // client-gallery photos. Fine for a template; swap for signed/private
 // access before handling sensitive shoots at scale.
 
-const { put } = require("@vercel/blob");
+const crypto = require("crypto");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getR2Client, publicUrlFor, missingEnv } = require("../_lib/r2");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB decoded — client-side resize should stay well under this
@@ -27,8 +28,9 @@ module.exports = async function handler(req, res) {
   }
   if (rejectIfNotAdmin(req, res)) return;
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error("Missing BLOB_READ_WRITE_TOKEN — add the Blob storage integration in Vercel.");
+  const missing = missingEnv();
+  if (missing.length) {
+    console.error(`File storage is not configured — missing env vars: ${missing.join(", ")}. See api/README.md.`);
     return res.status(500).json({ ok: false, error: "File storage is not configured yet." });
   }
 
@@ -62,16 +64,20 @@ module.exports = async function handler(req, res) {
   }
 
   const safeName = String(filename).replace(/[^a-zA-Z0-9.\-_]/g, "-");
+  const key = `uploads/${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeName}`;
 
   try {
-    const blob = await put(`uploads/${Date.now()}-${safeName}`, buffer, {
-      access: "public",
-      contentType,
-      addRandomSuffix: true,
-    });
-    return res.status(200).json({ ok: true, url: blob.url });
+    await getR2Client().send(
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+      })
+    );
+    return res.status(200).json({ ok: true, url: publicUrlFor(key) });
   } catch (err) {
-    console.error("Blob upload failed:", err);
+    console.error("R2 upload failed:", err);
     return res.status(502).json({ ok: false, error: "Upload failed." });
   }
 };
