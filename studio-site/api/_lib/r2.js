@@ -28,6 +28,11 @@ function getR2Client() {
         accessKeyId: process.env.R2_ACCESS_KEY_ID,
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
       },
+      // Newer SDK versions add flexible-checksum params (x-amz-checksum-*,
+      // x-amz-sdk-checksum-algorithm) to presigned URLs by default. R2
+      // rejects those, and its error response omits CORS headers, so the
+      // browser reports it as a CORS failure instead of the real cause.
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
   }
   return client;
