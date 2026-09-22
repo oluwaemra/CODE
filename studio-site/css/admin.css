@@ -216,6 +216,40 @@
 }
 .admin-inline-form .form-status { margin: 0; font-size: 0.8rem; }
 
+.admin-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -8px 0 16px;
+}
+.admin-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.admin-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background-color: var(--accent);
+  background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0 10px, transparent 10px 20px);
+  background-size: 28px 28px;
+  animation: admin-progress-stripes 1s linear infinite;
+  transition: width 0.2s ease;
+}
+@keyframes admin-progress-stripes {
+  from { background-position: 0 0; }
+  to { background-position: 28px 0; }
+}
+.admin-progress-pct {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  min-width: 34px;
+  text-align: right;
+}
+
 .admin-photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));

@@ -29,6 +29,28 @@ function setStatus(el, message, tone) {
   el.className = "form-status" + (tone ? ` form-status--${tone}` : "");
 }
 
+// Runs `fn` over `items` with at most `limit` in flight at once. Like
+// Promise.allSettled, but bounded — a big batch of full-res photo uploads
+// shouldn't all fire at the same time (browsers cap ~6 connections per
+// host anyway, and it's easier on R2's rate limits). Result order matches
+// `items`, regardless of completion order.
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { status: "fulfilled", value: await fn(items[i], i) };
+      } catch (reason) {
+        results[i] = { status: "rejected", reason };
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 // Parses a JSON reply, but if the server sent plain text/HTML instead (a
 // crash or a platform limit), surfaces its status and message rather than
 // the browser's cryptic "string did not match the expected pattern".
@@ -101,13 +123,30 @@ async function uploadImage(file, options) {
   return data.url;
 }
 
+// PUTs a file to a presigned URL via XHR (not fetch — only XHR exposes
+// upload progress across all browsers), reporting bytes sent so far.
+function putFileWithProgress(url, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.upload.onprogress = (e) => onProgress?.(e.loaded);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error("Upload failed."));
+    };
+    xhr.onerror = () => reject(new Error("Upload failed."));
+    xhr.send(file);
+  });
+}
+
 // Client gallery photos: uploaded at FULL original quality, no resize —
 // these are deliverables clients download, not web thumbnails. A normal
 // POST can't carry a full-res camera JPEG (serverless functions cap
 // request bodies at 4.5MB), so this fetches a short-lived presigned R2 URL
 // from /api/admin/gallery-upload-token and PUTs the original file bytes
 // straight to R2 from the browser, bypassing that limit entirely.
-async function uploadGalleryPhotoFullQuality(file) {
+async function uploadGalleryPhotoFullQuality(file, onProgress) {
   const tokenRes = await fetch("/api/admin/gallery-upload-token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -116,13 +155,7 @@ async function uploadGalleryPhotoFullQuality(file) {
   const tokenData = await tokenRes.json();
   if (!tokenRes.ok || !tokenData.ok) throw new Error(tokenData.error || "Couldn't start upload.");
 
-  const putRes = await fetch(tokenData.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-  if (!putRes.ok) throw new Error("Upload failed.");
-
+  await putFileWithProgress(tokenData.uploadUrl, file, onProgress);
   return tokenData.publicUrl;
 }
 
@@ -370,6 +403,10 @@ function initGalleriesTab() {
           <button type="submit" class="btn btn--outline btn--sm">Add Photo(s)</button>
           <p class="form-status admin-photo-status" role="status"></p>
         </form>
+        <div class="admin-progress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="admin-progress-track"><div class="admin-progress-fill"></div></div>
+          <span class="admin-progress-pct">0%</span>
+        </div>
       `;
 
       card.querySelector("h3").textContent = gallery.clientName;
@@ -462,7 +499,12 @@ function initGalleriesTab() {
         photoGrid.appendChild(thumb);
       });
 
+      const UPLOAD_CONCURRENCY = 5;
       const addPhotoForm = card.querySelector(".admin-add-photo-form");
+      const progressWrap = card.querySelector(".admin-progress");
+      const progressFill = card.querySelector(".admin-progress-fill");
+      const progressPct = card.querySelector(".admin-progress-pct");
+
       addPhotoForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const statusEl2 = addPhotoForm.querySelector(".admin-photo-status");
@@ -470,30 +512,65 @@ function initGalleriesTab() {
         if (!files.length) return;
 
         setStatus(statusEl2, `Uploading ${files.length} photo(s) at full quality…`, null);
-        try {
-          const newPhotos = [];
-          for (const file of files) {
-            const url = await uploadGalleryPhotoFullQuality(file);
-            // A small preview for the client's grid; the download button still
-            // serves the untouched original. If the preview fails, the photo
-            // still works (the grid just falls back to the original).
-            let thumb;
-            try {
-              thumb = await uploadImage(file, { maxDimension: 1200, quality: 0.8, filenamePrefix: "preview-" });
-            } catch (err) {
-              console.warn("Preview upload failed for", file.name, err);
-            }
-            newPhotos.push({ src: url, thumb, name: file.name, alt: `${gallery.clientName} — photo` });
-          }
-          const res = await fetch("/api/admin/galleries", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ slug: gallery.slug, photos: [...gallery.photos, ...newPhotos] }),
+
+        // Bytes sent per file, kept in sync as each file's XHR reports
+        // progress, so the bar reflects the whole batch, not just one file.
+        const sentPerFile = new Array(files.length).fill(0);
+        const totalBytes = files.reduce((sum, f) => sum + f.size, 0) || 1;
+        progressWrap.hidden = false;
+        progressWrap.setAttribute("aria-valuenow", "0");
+        progressFill.style.width = "0%";
+        progressPct.textContent = "0%";
+
+        function updateProgress() {
+          const sent = sentPerFile.reduce((a, b) => a + b, 0);
+          const pct = Math.min(100, Math.round((sent / totalBytes) * 100));
+          progressFill.style.width = `${pct}%`;
+          progressPct.textContent = `${pct}%`;
+          progressWrap.setAttribute("aria-valuenow", String(pct));
+        }
+
+        const results = await mapWithConcurrency(files, UPLOAD_CONCURRENCY, async (file, i) => {
+          const url = await uploadGalleryPhotoFullQuality(file, (loaded) => {
+            sentPerFile[i] = loaded;
+            updateProgress();
           });
-          const data = await res.json();
-          if (!res.ok || !data.ok) throw new Error(data.error || "Failed to save photos.");
-          setStatus(statusEl2, "Added.", "success");
-          loadGalleries();
+          sentPerFile[i] = file.size;
+          updateProgress();
+
+          // A small preview for the client's grid; the download button still
+          // serves the untouched original. If the preview fails, the photo
+          // still works (the grid just falls back to the original).
+          let thumb;
+          try {
+            thumb = await uploadImage(file, { maxDimension: 1200, quality: 0.8, filenamePrefix: "preview-" });
+          } catch (err) {
+            console.warn("Preview upload failed for", file.name, err);
+          }
+          return { src: url, thumb, name: file.name, alt: `${gallery.clientName} — photo` };
+        });
+
+        progressWrap.hidden = true;
+
+        const newPhotos = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+        const failedCount = results.length - newPhotos.length;
+
+        try {
+          if (newPhotos.length) {
+            const res = await fetch("/api/admin/galleries", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ slug: gallery.slug, photos: [...gallery.photos, ...newPhotos] }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || "Failed to save photos.");
+          }
+          if (failedCount) {
+            setStatus(statusEl2, `Added ${newPhotos.length} of ${files.length} — ${failedCount} failed. Try those again.`, "error");
+          } else {
+            setStatus(statusEl2, "Added.", "success");
+          }
+          if (newPhotos.length) loadGalleries();
         } catch (err) {
           setStatus(statusEl2, err.message || "Something went wrong.", "error");
         }
