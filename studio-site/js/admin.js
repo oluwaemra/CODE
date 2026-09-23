@@ -24,6 +24,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 /* ---------- Shared helpers ---------- */
 
+// Thrown by adminFetch on a 401 so callers can tell "you got signed out"
+// apart from an ordinary failure (a network blip, a bad file, R2 down) and
+// stop retrying instead of treating it like any other per-item error.
+class SessionExpiredError extends Error {
+  constructor() {
+    super("Your session expired. Please sign in again.");
+    this.name = "SessionExpiredError";
+  }
+}
+
+let signingOut = false;
+// Fires once, however many requests 401 at the same time (a batch upload can
+// have several in flight together) — clears the stale cookie and leaves.
+function handleSessionExpired() {
+  if (signingOut) return;
+  signingOut = true;
+  fetch("/api/admin-logout", { method: "POST" }).catch(() => {});
+  window.location.href = "/admin/login.html?expired=1";
+}
+
+// Use this instead of fetch() for every /api/admin/* call. A 401 means the
+// admin session cookie is gone (12h expiry, or signed out elsewhere) — not
+// something worth showing per file in a big batch, so this signs the admin
+// out and sends them back to login immediately.
+async function adminFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    handleSessionExpired();
+    throw new SessionExpiredError();
+  }
+  return res;
+}
+
 function setStatus(el, message, tone) {
   el.textContent = message;
   el.className = "form-status" + (tone ? ` form-status--${tone}` : "");
@@ -119,7 +152,7 @@ function prepareImageForUpload(file, { maxDimension = 2560, quality = 0.92, file
 // faster-loading) for images that only ever get shown on the public site.
 async function uploadImage(file, options) {
   const prepared = await prepareImageForUpload(file, options);
-  const res = await fetch("/api/admin/upload", {
+  const res = await adminFetch("/api/admin/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(prepared),
@@ -153,7 +186,7 @@ function putFileWithProgress(url, file, onProgress) {
 // from /api/admin/gallery-upload-token and PUTs the original file bytes
 // straight to R2 from the browser, bypassing that limit entirely.
 async function uploadGalleryPhotoFullQuality(file, onProgress) {
-  const tokenRes = await fetch("/api/admin/gallery-upload-token", {
+  const tokenRes = await adminFetch("/api/admin/gallery-upload-token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename: file.name, contentType: file.type }),
@@ -210,7 +243,7 @@ function initPortfolioTab() {
   const emptyEl = document.getElementById("portfolioEmpty");
 
   async function loadItems() {
-    const res = await fetch("/api/admin/portfolio");
+    const res = await adminFetch("/api/admin/portfolio");
     const data = await res.json();
     if (!res.ok || !data.ok) return;
     renderItems(data.items);
@@ -260,7 +293,7 @@ function initPortfolioTab() {
 
       card.querySelector(".admin-delete-btn").addEventListener("click", async () => {
         if (!confirm(`Delete "${item.title}"?`)) return;
-        const res = await fetch(`/api/admin/portfolio?id=${encodeURIComponent(item.id)}`, { method: "DELETE" });
+        const res = await adminFetch(`/api/admin/portfolio?id=${encodeURIComponent(item.id)}`, { method: "DELETE" });
         const data = await res.json();
         if (res.ok && data.ok) loadItems();
         else alert(data.error || "Delete failed.");
@@ -270,7 +303,7 @@ function initPortfolioTab() {
         event.preventDefault();
         const statusEl2 = editForm.querySelector(".admin-edit-status");
         setStatus(statusEl2, "Saving…", null);
-        const res = await fetch("/api/admin/portfolio", {
+        const res = await adminFetch("/api/admin/portfolio", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -314,7 +347,7 @@ function initPortfolioTab() {
 
     try {
       const imageUrl = await uploadImage(file);
-      const res = await fetch("/api/admin/portfolio", {
+      const res = await adminFetch("/api/admin/portfolio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, category, imageUrl, alt, href }),
@@ -358,7 +391,7 @@ function initGalleriesTab() {
   });
 
   async function loadGalleries() {
-    const res = await fetch("/api/admin/galleries");
+    const res = await adminFetch("/api/admin/galleries");
     const data = await res.json();
     if (!res.ok || !data.ok) return;
     renderGalleries(data.galleries);
@@ -428,7 +461,7 @@ function initGalleriesTab() {
       const downloadToggle = card.querySelector(".admin-download-toggle");
       downloadToggle.checked = gallery.downloadEnabled;
       downloadToggle.addEventListener("change", async () => {
-        await fetch("/api/admin/galleries", {
+        await adminFetch("/api/admin/galleries", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slug: gallery.slug, downloadEnabled: downloadToggle.checked }),
@@ -437,7 +470,7 @@ function initGalleriesTab() {
 
       card.querySelector(".admin-delete-gallery-btn").addEventListener("click", async () => {
         if (!confirm(`Delete the gallery for "${gallery.clientName}"? This cannot be undone.`)) return;
-        const res = await fetch(`/api/admin/galleries?slug=${encodeURIComponent(gallery.slug)}`, { method: "DELETE" });
+        const res = await adminFetch(`/api/admin/galleries?slug=${encodeURIComponent(gallery.slug)}`, { method: "DELETE" });
         const data = await res.json();
         if (res.ok && data.ok) loadGalleries();
         else alert(data.error || "Delete failed.");
@@ -450,7 +483,7 @@ function initGalleriesTab() {
         const newPassword = pwForm.password.value.trim();
         if (!newPassword) return;
         setStatus(statusEl2, "Saving…", null);
-        const res = await fetch("/api/admin/galleries", {
+        const res = await adminFetch("/api/admin/galleries", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ slug: gallery.slug, password: newPassword }),
@@ -497,7 +530,7 @@ function initGalleriesTab() {
         thumb.querySelector(".admin-photo-remove").addEventListener("click", async () => {
           if (!confirm("Remove this photo from the gallery?")) return;
           const nextPhotos = gallery.photos.filter((p) => p.src !== photo.src);
-          const res = await fetch("/api/admin/galleries", {
+          const res = await adminFetch("/api/admin/galleries", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ slug: gallery.slug, photos: nextPhotos }),
@@ -582,6 +615,7 @@ function initGalleriesTab() {
               updateProgress();
             });
           } catch (err) {
+            if (err instanceof SessionExpiredError) return; // already redirecting to login
             sentPerFile[i] = file.size; // count it "done" for the bar even though it failed
             failedFiles.push(file);
             console.error(`Upload failed for ${file.name}:`, err);
@@ -603,7 +637,7 @@ function initGalleriesTab() {
           saveChain = saveChain.then(async (currentPhotos) => {
             try {
               const updated = [...currentPhotos, photo];
-              const res = await fetch("/api/admin/galleries", {
+              const res = await adminFetch("/api/admin/galleries", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ slug: gallery.slug, photos: updated }),
@@ -619,6 +653,7 @@ function initGalleriesTab() {
               gallery.photos = updated;
               return updated;
             } catch (err) {
+              if (err instanceof SessionExpiredError) return currentPhotos; // already redirecting to login
               failedFiles.push(file);
               console.error(`Couldn't save ${file.name}:`, err);
               updateProgress();
@@ -678,7 +713,7 @@ function initGalleriesTab() {
     submitBtn.textContent = "Creating…";
 
     try {
-      const res = await fetch("/api/admin/galleries", {
+      const res = await adminFetch("/api/admin/galleries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientName, slug, password, downloadEnabled }),
