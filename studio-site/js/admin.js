@@ -407,6 +407,7 @@ function initGalleriesTab() {
         <form class="admin-inline-form admin-add-photo-form">
           <input type="file" name="photo" accept="image/png,image/jpeg,image/webp" multiple>
           <button type="submit" class="btn btn--outline btn--sm">Add Photo(s)</button>
+          <button type="button" class="btn btn--outline btn--sm admin-retry-failed-btn" hidden>Retry failed</button>
           <p class="form-status admin-photo-status" role="status"></p>
         </form>
         <div class="admin-progress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -511,25 +512,32 @@ function initGalleriesTab() {
       const UPLOAD_CONCURRENCY = 5;
       const addPhotoForm = card.querySelector(".admin-add-photo-form");
       const submitBtn2 = addPhotoForm.querySelector("button[type=submit]");
+      const retryBtn = addPhotoForm.querySelector(".admin-retry-failed-btn");
       const progressWrap = card.querySelector(".admin-progress");
       const progressFill = card.querySelector(".admin-progress-fill");
       const progressPct = card.querySelector(".admin-progress-pct");
       const progressLabel = card.querySelector(".admin-progress-label");
+      const statusEl2 = addPhotoForm.querySelector(".admin-photo-status");
+      let lastFailedFiles = [];
+      // Refreshing the list rebuilds this whole card, so a refresh already
+      // scheduled from a first attempt has to be cancelled if "Retry failed"
+      // starts a new upload before it fires — otherwise it would yank the
+      // card (and this upload's progress bar) out from under itself mid-way.
+      let refreshTimer = null;
 
-      addPhotoForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const statusEl2 = addPhotoForm.querySelector(".admin-photo-status");
-        const files = Array.from(addPhotoForm.photo.files || []);
+      async function uploadFiles(files) {
         if (!files.length) return;
 
         setStatus(statusEl2, "", null);
         submitBtn2.disabled = true;
+        retryBtn.hidden = true;
+        clearTimeout(refreshTimer);
 
         // Bytes sent per file, kept in sync as each file's XHR reports
         // progress, so the bar reflects the whole batch, not just one file.
         const sentPerFile = new Array(files.length).fill(0);
         const totalBytes = files.reduce((sum, f) => sum + f.size, 0) || 1;
-        const failedNames = [];
+        const failedFiles = [];
         let completed = 0;
         // Photos are saved to the gallery as each one finishes, not all in one
         // request at the end — chained so two photos finishing close together
@@ -575,7 +583,7 @@ function initGalleriesTab() {
             });
           } catch (err) {
             sentPerFile[i] = file.size; // count it "done" for the bar even though it failed
-            failedNames.push(file.name);
+            failedFiles.push(file);
             console.error(`Upload failed for ${file.name}:`, err);
             updateProgress();
             return;
@@ -604,9 +612,14 @@ function initGalleriesTab() {
               if (!res.ok || !data.ok) throw new Error(data.error || "Couldn't save this photo.");
               completed++;
               updateProgress();
+              // Keep the shared gallery object in sync — a retry or a second
+              // "Add Photo(s)" submit before the list refreshes starts a new
+              // saveChain from gallery.photos, which would otherwise still be
+              // the count from before this batch and overwrite these saves.
+              gallery.photos = updated;
               return updated;
             } catch (err) {
-              failedNames.push(file.name);
+              failedFiles.push(file);
               console.error(`Couldn't save ${file.name}:`, err);
               updateProgress();
               return currentPhotos; // keep the chain alive for the rest of the batch
@@ -618,22 +631,30 @@ function initGalleriesTab() {
         clearInterval(speedTimer);
         updateProgress();
         submitBtn2.disabled = false;
+        lastFailedFiles = failedFiles;
 
-        if (!failedNames.length) {
+        if (!failedFiles.length) {
           setStatus(statusEl2, `Added ${completed} photo${completed === 1 ? "" : "s"}.`, "success");
           addPhotoForm.reset();
         } else {
-          setStatus(
-            statusEl2,
-            `Added ${completed} of ${files.length} — failed: ${failedNames.join(", ")}. Select just those and try again.`,
-            "error"
-          );
+          const names = failedFiles.map((f) => f.name).join(", ");
+          setStatus(statusEl2, `Added ${completed} of ${files.length} — failed: ${names}.`, "error");
+          retryBtn.hidden = false;
+          retryBtn.textContent = `Retry ${failedFiles.length} failed`;
         }
         // Give the admin a moment to read the result before the card
         // re-renders (loadGalleries rebuilds the whole list, which would
-        // otherwise wipe this message and the progress bar instantly).
-        setTimeout(loadGalleries, failedNames.length ? 5000 : 1500);
+        // otherwise wipe this message and the progress bar instantly). A
+        // pending "Retry failed" click cancels this first (see above).
+        refreshTimer = setTimeout(loadGalleries, failedFiles.length ? 8000 : 1500);
+      }
+
+      addPhotoForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        uploadFiles(Array.from(addPhotoForm.photo.files || []));
       });
+
+      retryBtn.addEventListener("click", () => uploadFiles(lastFailedFiles));
 
       list.insertBefore(card, emptyEl);
     });
