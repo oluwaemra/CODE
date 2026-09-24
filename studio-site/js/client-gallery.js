@@ -121,6 +121,103 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // ---------- email gate (once per visit, before the first download) ----------
+
+  const emailGate = (() => {
+    const box = document.createElement("div");
+    box.className = "gv-email-modal";
+    box.hidden = true;
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "Enter your email to download");
+    box.innerHTML = `
+      <form class="gv-email-card">
+        <button type="button" class="gv-icon gv-email-close" aria-label="Cancel">${ICONS.close}</button>
+        <h2>Enter your email to download</h2>
+        <p>We'll only use this to keep you updated about your photos.</p>
+        <input type="email" class="gv-email-input" placeholder="you@example.com" autocomplete="email" required>
+        <p class="gv-email-error" hidden></p>
+        <button type="submit" class="gv-email-submit">Continue</button>
+      </form>
+    `;
+    document.body.appendChild(box);
+
+    const form = box.querySelector("form");
+    const input = box.querySelector(".gv-email-input");
+    const errorEl = box.querySelector(".gv-email-error");
+    let pendingAction = null;
+    let lastFocus = null;
+
+    function open(action) {
+      pendingAction = action;
+      lastFocus = document.activeElement;
+      errorEl.hidden = true;
+      input.value = "";
+      box.hidden = false;
+      document.body.classList.add("gv-noscroll");
+      input.focus();
+    }
+
+    function close() {
+      box.hidden = true;
+      document.body.classList.remove("gv-noscroll");
+      pendingAction = null;
+      lastFocus?.focus?.();
+    }
+
+    box.querySelector(".gv-email-close").addEventListener("click", close);
+    box.addEventListener("click", (e) => { if (e.target === box) close(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !box.hidden) close(); });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const email = input.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errorEl.textContent = "Please enter a valid email address.";
+        errorEl.hidden = false;
+        return;
+      }
+      sessionStorage.setItem?.(`gv_email_${gallery.slug}`, "1");
+      box.hidden = true;
+      document.body.classList.remove("gv-noscroll");
+
+      // Run the download the visitor actually asked for right away, inside
+      // this click handler — some browsers only allow the save-file picker
+      // during a genuine user gesture, and waiting on the fetch below first
+      // can lose that. Saving the email itself doesn't need to block it.
+      const action = pendingAction;
+      pendingAction = null;
+      action?.();
+
+      fetch("/api/gallery-photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
+    });
+
+    function alreadyGiven() {
+      try {
+        return sessionStorage.getItem?.(`gv_email_${gallery.slug}`) === "1";
+      } catch {
+        return false;
+      }
+    }
+
+    // Call with the download the visitor is trying to start. Runs it right
+    // away if they've already given an email this visit; otherwise asks
+    // first and runs it only once they submit (or never, if they cancel).
+    function require(action) {
+      if (alreadyGiven()) {
+        action();
+        return;
+      }
+      open(action);
+    }
+
+    return { require };
+  })();
+
   // ---------- likes ----------
 
   function syncLikeUI() {
@@ -242,7 +339,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------- download everything as a zip ----------
 
   let zipping = false;
-  zipBtn.addEventListener("click", async () => {
+  zipBtn.addEventListener("click", () => emailGate.require(startZipDownload));
+
+  async function startZipDownload() {
     if (zipping || !gallery.photos.length) return;
     zipping = true;
     zipBtn.disabled = true;
@@ -306,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
       zipping = false;
       zipBtn.disabled = false;
     }
-  });
+  }
 
   // ---------- full-size viewer ----------
 
@@ -390,7 +489,10 @@ document.addEventListener("DOMContentLoaded", () => {
     box.querySelector(".gv-lb-prev").addEventListener("click", () => show(index - 1));
     box.querySelector(".gv-lb-next").addEventListener("click", () => show(index + 1));
     likeBtn.addEventListener("click", () => current() && toggleLike(current().src));
-    dlLink.addEventListener("click", () => current() && saveOne(current()));
+    dlLink.addEventListener("click", () => {
+      const photo = current();
+      if (photo) emailGate.require(() => saveOne(photo));
+    });
     box.addEventListener("click", (e) => { if (e.target === box) close(); });
 
     document.addEventListener("keydown", (e) => {

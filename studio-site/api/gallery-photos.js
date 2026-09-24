@@ -1,6 +1,7 @@
 // ==========================================================
 // GET  /api/gallery-photos  -> the photo set + the client's liked photos
 // POST /api/gallery-photos  -> { src, liked } like / unlike one photo,
+//                              { email } record an email before a download,
 //                              or { ping: true } to keep the session alive
 //
 // Returns the photo set for the gallery named in the caller's session
@@ -12,7 +13,7 @@
 // move to short-lived signed URLs for real client deliverables).
 // ==========================================================
 
-const { getGallery, getLikes, setLike } = require("./_lib/kv");
+const { getGallery, getLikes, setLike, addEmail } = require("./_lib/kv");
 const { getSessionFromRequest, signGallerySession, setSessionCookie } = require("./_lib/gallery-auth");
 
 const safeHandler = require("./_lib/safe-handler");
@@ -55,6 +56,17 @@ module.exports = safeHandler(async function handler(req, res) {
     body = body || {};
     // Heartbeat from the open page (and a final one as the tab is hidden).
     if (body.ping === true) return res.status(200).json({ ok: true });
+
+    if (typeof body.email === "string") {
+      const email = body.email.trim();
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!EMAIL_RE.test(email)) {
+        return res.status(400).json({ ok: false, error: "Please enter a valid email address." });
+      }
+      await addEmail(gallery.slug, email);
+      return res.status(200).json({ ok: true });
+    }
+
     const { src, liked } = body;
     if (typeof src !== "string" || typeof liked !== "boolean") {
       return res.status(400).json({ ok: false, error: "src and liked are required." });

@@ -316,6 +316,20 @@
 .admin-fav-summary { color: var(--fg-muted); margin-right: auto; }
 .admin-fav-bar .form-status { margin: 0; font-size: 0.8rem; }
 
+.admin-email-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+.admin-email-summary { color: var(--fg-muted); margin-right: auto; }
+.admin-email-bar .form-status { margin: 0; font-size: 0.8rem; }
+
 @media (max-width: 640px) {
   .admin-header { flex-wrap: wrap; }
   .admin-header-actions { margin-left: 0; }

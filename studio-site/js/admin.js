@@ -435,6 +435,12 @@ function initGalleriesTab() {
           <p class="form-status admin-fav-status" role="status"></p>
         </div>
 
+        <div class="admin-email-bar" hidden>
+          <span class="admin-email-summary"></span>
+          <button type="button" class="btn btn--outline btn--sm admin-email-copy">Copy emails</button>
+          <p class="form-status admin-email-status" role="status"></p>
+        </div>
+
         <div class="admin-photo-grid"></div>
 
         <form class="admin-inline-form admin-add-photo-form">
@@ -518,6 +524,23 @@ function initGalleriesTab() {
             setStatus(statusEl3, `Copied ${names.length} file name${names.length === 1 ? "" : "s"}.`, "success");
           } catch {
             setStatus(statusEl3, "Couldn't copy — your browser blocked clipboard access.", "error");
+          }
+        });
+      }
+
+      const emails = gallery.emails || [];
+      const emailBar = card.querySelector(".admin-email-bar");
+      if (emails.length) {
+        emailBar.hidden = false;
+        emailBar.querySelector(".admin-email-summary").textContent =
+          `${emails.length} email${emails.length === 1 ? "" : "s"} collected before downloading`;
+        emailBar.querySelector(".admin-email-copy").addEventListener("click", async () => {
+          const statusEl4 = emailBar.querySelector(".admin-email-status");
+          try {
+            await navigator.clipboard.writeText(emails.join("\n"));
+            setStatus(statusEl4, `Copied ${emails.length} email${emails.length === 1 ? "" : "s"}.`, "success");
+          } catch {
+            setStatus(statusEl4, "Couldn't copy — your browser blocked clipboard access.", "error");
           }
         });
       }

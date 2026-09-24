@@ -58,7 +58,7 @@ async function saveGallery(gallery) {
 }
 
 async function deleteGallery(slug) {
-  await getClient().del(galleryKey(slug), likesKey(slug));
+  await getClient().del(galleryKey(slug), likesKey(slug), emailsKey(slug));
 }
 
 function likesKey(slug) {
@@ -74,6 +74,19 @@ async function setLike(slug, src, liked) {
   const redis = getClient();
   if (liked) await redis.sadd(likesKey(slug), src);
   else await redis.srem(likesKey(slug), src);
+}
+
+function emailsKey(slug) {
+  return `emails:${slug}`;
+}
+
+async function getEmails(slug) {
+  const members = await getClient().smembers(emailsKey(slug));
+  return Array.isArray(members) ? members.map(String) : [];
+}
+
+async function addEmail(slug, email) {
+  await getClient().sadd(emailsKey(slug), String(email).trim().toLowerCase());
 }
 
 async function listGalleries() {
@@ -93,4 +106,6 @@ module.exports = {
   listGalleries,
   getLikes,
   setLike,
+  getEmails,
+  addEmail,
 };
