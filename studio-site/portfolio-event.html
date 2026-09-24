@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio — EMRASHOTIT STUDIOS</title>
-<meta name="description" content="Selected work from Emrashotit Studios — portraits, events, and graduation photography.">
+<title>Event — EMRASHOTIT STUDIOS</title>
+<meta name="description" content="Selected work from Emrashotit Studios.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -69,39 +69,16 @@
 
   <!-- ============ PAGE HERO ============ -->
   <section class="page-hero">
-    <p class="section-eyebrow"><span class="eyebrow-num">✦</span> Selected Work</p>
-    <h1 class="page-title">Portfolio</h1>
-    <p class="page-intro">
-      A cross-section of portraits, events, and graduation work.
-      Filter by category below, or explore a project's full set.
-    </p>
+    <p class="section-eyebrow"><a href="portfolio.html#events" class="event-back-link">✦ ← Back to Portfolio</a></p>
+    <h1 class="page-title" id="eventTitle">—</h1>
   </section>
-
-  <!-- ============ FILTER BAR ============ -->
-  <div class="filter-bar" role="tablist" aria-label="Filter portfolio by category">
-    <button class="filter-btn is-active" data-filter="all" role="tab" aria-selected="true">All</button>
-    <button class="filter-btn" data-filter="portraits" role="tab" aria-selected="false">Portraits</button>
-    <button class="filter-btn" data-filter="events" role="tab" aria-selected="false">Events</button>
-    <button class="filter-btn" data-filter="graduation" role="tab" aria-selected="false">Graduation</button>
-    <button class="filter-btn" data-filter="featured" role="tab" aria-selected="false">Featured</button>
-  </div>
 
   <!-- ============ GALLERY GRID ============ -->
-  <!-- Populated by js/portfolio.js from GET /api/portfolio (managed via /admin).
-       Falls back to placeholder items if the API isn't reachable yet. -->
+  <!-- Populated by js/portfolio-event.js from GET /api/portfolio?event=<slug>
+       (?slug= read from this page's own URL). -->
   <section class="gallery-grid" id="galleryGrid">
-    <p class="gallery-loading" id="galleryLoading">Loading portfolio…</p>
-    <p class="gallery-empty" id="galleryEmpty" hidden>No projects in this category yet — check back soon.</p>
-  </section>
-
-  <!-- ============ EVENTS (grouped) ============ -->
-  <!-- Shown instead of the flat grid above when the "Events" filter is
-       selected. Populated from GET /api/portfolio?events=1 — each event's
-       admin-starred "featured" photos, with a link to its own full page
-       when it has more than that to show. -->
-  <section class="events-list" id="eventsList" hidden>
-    <p class="gallery-loading" id="eventsLoading">Loading events…</p>
-    <p class="gallery-empty" id="eventsEmpty" hidden>No events published yet — check back soon.</p>
+    <p class="gallery-loading" id="galleryLoading">Loading…</p>
+    <p class="gallery-empty" id="galleryEmpty" hidden>This event couldn't be found.</p>
   </section>
 
 </main>
@@ -123,6 +100,6 @@
 </footer>
 
 <script src="js/main.js"></script>
-<script src="js/portfolio.js"></script>
+<script src="js/portfolio-event.js"></script>
 </body>
 </html>

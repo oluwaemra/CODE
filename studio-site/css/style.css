@@ -307,6 +307,8 @@ img { max-width: 100%; display: block; }
 }
 .section-eyebrow--tight { margin-bottom: 16px; }
 .eyebrow-num { color: var(--accent-text); }
+.event-back-link { transition: color 0.2s var(--ease); }
+.event-back-link:hover { color: var(--accent-text); }
 .about-copy {
   font-family: var(--font-editorial);
   font-size: clamp(1.2rem, 2.4vw, 1.5rem);
@@ -501,6 +503,30 @@ img { max-width: 100%; display: block; }
   font-size: 13px;
   letter-spacing: 0.08em;
 }
+
+/* ---------- Events (grouped) — portfolio.html's "Events" filter ---------- */
+.events-list { padding: 0 var(--gutter) 60px; }
+.event-group { margin-bottom: 72px; }
+.event-group:last-child { margin-bottom: 0; }
+.event-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.event-group-title {
+  margin: 0;
+  font-family: var(--font-editorial);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 500;
+}
+.event-view-all { flex-shrink: 0; }
+/* .events-list already carries the side gutter; the inner masonry grid
+   shouldn't double it up the way the page-level one does. */
+.event-group-grid { padding: 0; }
 
 /* ---------- About page ---------- */
 .mission-band {

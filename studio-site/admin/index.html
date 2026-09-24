@@ -28,6 +28,7 @@
 
   <nav class="admin-tabs" role="tablist">
     <button type="button" class="admin-tab is-active" data-tab="portfolio" role="tab" aria-selected="true">Portfolio</button>
+    <button type="button" class="admin-tab" data-tab="events" role="tab" aria-selected="false">Events</button>
     <button type="button" class="admin-tab" data-tab="galleries" role="tab" aria-selected="false">Client Galleries</button>
   </nav>
 
@@ -47,7 +48,6 @@
             <select id="pfCategory" name="category" required>
               <option value="" disabled selected>Select one</option>
               <option value="portraits">Portraits</option>
-              <option value="events">Events</option>
               <option value="commercial">Commercial</option>
               <option value="graduation">Graduation</option>
               <option value="video">Video Production</option>
@@ -78,6 +78,35 @@
       <h2>Portfolio Items</h2>
       <div class="admin-item-grid" id="portfolioItemGrid">
         <p class="admin-empty" id="portfolioEmpty">No portfolio items yet — add your first one above.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============ EVENTS TAB ============ -->
+  <!-- Grouped public photo sets shown on portfolio.html's "Events" filter:
+       a name, the admin-starred "featured" photos on the index, and every
+       photo on the event's own page (View All). -->
+  <section class="admin-panel" id="panel-events" hidden>
+
+    <div class="admin-card">
+      <h2>Create Event</h2>
+      <form class="contact-form admin-form" id="eventForm" novalidate>
+        <div class="form-row">
+          <label for="evTitle">Event Name<span aria-hidden="true">*</span></label>
+          <input type="text" id="evTitle" name="title" required>
+        </div>
+        <div class="form-row form-row--footer">
+          <button type="submit" class="btn btn--primary" id="evSubmitBtn">Create Event</button>
+          <p class="form-status" id="evStatus" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+
+    <div class="admin-card">
+      <h2>Events</h2>
+      <div class="admin-event-list" id="eventList">
+        <p class="admin-empty" id="eventsEmpty">No events yet — create one above.</p>
       </div>
     </div>
 

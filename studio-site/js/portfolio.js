@@ -32,6 +32,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const grid = document.getElementById("galleryGrid");
   const loadingEl = document.getElementById("galleryLoading");
   const emptyState = document.getElementById("galleryEmpty");
+  const eventsList = document.getElementById("eventsList");
+  const eventsLoadingEl = document.getElementById("eventsLoading");
+  const eventsEmptyState = document.getElementById("eventsEmpty");
   const filterButtons = Array.from(document.querySelectorAll(".filter-btn"));
   if (!grid) return;
 
@@ -53,7 +56,73 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (loadingEl) loadingEl.remove();
   renderItems(items);
   initFiltering();
-  initLightbox(items);
+  initLightbox(items, grid);
+  loadEvents(); // separate + non-blocking — the flat grid above works either way
+
+  // The "Events" filter shows grouped event blocks (name + the admin's
+  // featured photos + View All) instead of the flat grid — fetched
+  // separately since it's a different shape (events, not flat items).
+  async function loadEvents() {
+    let events = [];
+    try {
+      const res = await fetch("/api/portfolio?events=1");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.events)) events = data.events;
+      }
+    } catch {
+      // No backend deployed yet, or nothing published — show the empty state.
+    }
+    renderEvents(events);
+  }
+
+  function renderEvents(events) {
+    if (eventsLoadingEl) eventsLoadingEl.remove();
+    eventsEmptyState.hidden = events.length !== 0;
+
+    events.forEach((event) => {
+      const group = document.createElement("div");
+      group.className = "event-group";
+      group.innerHTML = `
+        <div class="event-group-header">
+          <h2 class="event-group-title"></h2>
+          ${event.hasMore ? `<a class="text-link event-view-all" href="portfolio-event.html?slug=${encodeURIComponent(event.slug)}">View All →</a>` : ""}
+        </div>
+        <div class="gallery-grid event-group-grid"></div>
+      `;
+      group.querySelector(".event-group-title").textContent = event.title;
+
+      const subGrid = group.querySelector(".event-group-grid");
+      event.featuredPhotos.forEach((photo, i) => {
+        const link = document.createElement("a");
+        link.href = photo.src;
+        link.className = "gallery-item";
+        link.dataset.id = `${event.slug}-${i}`;
+        link.setAttribute("aria-label", `View a photo from ${event.title}`);
+
+        const img = document.createElement("img");
+        img.src = photo.src;
+        img.alt = photo.alt || event.title;
+        img.loading = "lazy";
+        link.appendChild(img);
+
+        subGrid.appendChild(link);
+      });
+
+      eventsList.insertBefore(group, eventsEmptyState);
+    });
+
+    const eventItems = events.flatMap((event) =>
+      event.featuredPhotos.map((photo, i) => ({
+        id: `${event.slug}-${i}`,
+        imageUrl: photo.src,
+        alt: photo.alt || event.title,
+        title: event.title,
+        href: "#",
+      }))
+    );
+    initLightbox(eventItems, eventsList);
+  }
 
   function renderItems(list) {
     list.forEach((item) => {
@@ -84,10 +153,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function initFiltering() {
-    const galleryItems = Array.from(document.querySelectorAll(".gallery-item"));
-    if (!filterButtons.length || !galleryItems.length) return;
+    // Scoped to #galleryGrid specifically — the events section below reuses
+    // the same .gallery-item class for its own photo tiles, and those aren't
+    // tagged with a category, so an unscoped selector would hide them too.
+    const galleryItems = Array.from(grid.querySelectorAll(".gallery-item"));
+    // Only filterButtons.length gates this — not also galleryItems.length —
+    // so the Events filter still works even on a day with zero flat items.
+    if (!filterButtons.length) return;
 
     function applyFilter(filter) {
+      const showEvents = filter === "events";
+      grid.hidden = showEvents;
+      eventsList.hidden = !showEvents;
+      if (showEvents) return;
+
       let visibleCount = 0;
       galleryItems.forEach((item) => {
         const match = filter === "all" || item.dataset.category === filter;
@@ -126,9 +205,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 // Click a tile to see the photo at full size over the page. Arrow keys / buttons
 // move through whatever the current filter shows; Esc, the X or a click on the
 // backdrop closes it.
-function initLightbox(items) {
+function initLightbox(items, grid) {
+  if (!items.length) return;
   const byId = new Map(items.map((item) => [item.id, item]));
-  const grid = document.getElementById("galleryGrid");
 
   const box = document.createElement("div");
   box.className = "lightbox";

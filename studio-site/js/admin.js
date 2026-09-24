@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initTabs();
   initSignOut();
   initPortfolioTab();
+  initEventsTab();
   initGalleriesTab();
 });
 
@@ -367,6 +368,288 @@ function initPortfolioTab() {
   });
 
   loadItems();
+}
+
+/* ---------- Events tab ---------- */
+// Grouped public photo sets shown on portfolio.html's "Events" filter — a
+// name, admin-starred "featured" photos for the index, and the full set on
+// the event's own page (View All). Photo uploads go through the same
+// resize-then-/api/admin/upload pipeline as flat portfolio items — these are
+// public site images, not full-quality client deliverables.
+
+const FEATURED_MINIMUM = 6;
+
+function initEventsTab() {
+  const form = document.getElementById("eventForm");
+  const submitBtn = document.getElementById("evSubmitBtn");
+  const statusEl = document.getElementById("evStatus");
+  const list = document.getElementById("eventList");
+  const emptyEl = document.getElementById("eventsEmpty");
+
+  async function loadEvents() {
+    const res = await adminFetch("/api/admin/portfolio?events=1");
+    const data = await res.json();
+    if (!res.ok || !data.ok) return;
+    renderEvents(data.events);
+  }
+
+  async function savePhotos(evt, photos) {
+    const res = await adminFetch("/api/admin/portfolio?events=1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: evt.slug, photos }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "Failed.");
+    return data.event;
+  }
+
+  function renderEvents(events) {
+    list.querySelectorAll(".admin-event-card").forEach((el) => el.remove());
+    emptyEl.hidden = events.length !== 0;
+
+    events.forEach((evt) => {
+      const card = document.createElement("div");
+      card.className = "admin-event-card";
+      card.innerHTML = `
+        <div class="admin-gallery-header">
+          <div>
+            <h3></h3>
+            <span class="admin-gallery-slug"></span>
+          </div>
+          <div class="admin-gallery-header-actions">
+            <button type="button" class="text-link admin-delete-event-btn">Delete</button>
+          </div>
+        </div>
+
+        <div class="admin-photo-grid"></div>
+
+        <form class="admin-inline-form admin-add-event-photo-form">
+          <input type="file" name="photo" accept="image/png,image/jpeg,image/webp" multiple>
+          <button type="submit" class="btn btn--outline btn--sm">Add Photo(s)</button>
+          <button type="button" class="btn btn--outline btn--sm admin-retry-failed-btn" hidden>Retry failed</button>
+          <p class="form-status admin-photo-status" role="status"></p>
+        </form>
+        <div class="admin-progress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="admin-progress-row">
+            <div class="admin-progress-track"><div class="admin-progress-fill"></div></div>
+            <span class="admin-progress-pct">0%</span>
+          </div>
+          <p class="admin-progress-label"></p>
+        </div>
+      `;
+
+      card.querySelector("h3").textContent = evt.title;
+
+      // Updated locally (no reload) after every star/remove, so clicking
+      // through several photos in a row — the normal way to pick at least 6
+      // featured ones — never races a full-card refresh that hasn't caught
+      // up yet and can't lose an earlier click's change.
+      function refreshSlugText() {
+        const featuredCount = evt.photos.filter((p) => p.featured).length;
+        card.querySelector(".admin-gallery-slug").textContent =
+          `/${evt.slug} · ${evt.photos.length} photo${evt.photos.length === 1 ? "" : "s"} · ★ ${featuredCount} featured` +
+          (featuredCount < FEATURED_MINIMUM ? ` (choose at least ${FEATURED_MINIMUM} to show on the Events page)` : "");
+      }
+      refreshSlugText();
+
+      card.querySelector(".admin-delete-event-btn").addEventListener("click", async () => {
+        if (!confirm(`Delete the event "${evt.title}"? This cannot be undone.`)) return;
+        const res = await adminFetch(`/api/admin/portfolio?events=1&slug=${encodeURIComponent(evt.slug)}`, { method: "DELETE" });
+        const data = await res.json();
+        if (res.ok && data.ok) loadEvents();
+        else alert(data.error || "Delete failed.");
+      });
+
+      const photoGrid = card.querySelector(".admin-photo-grid");
+      const photoName = (photo) => photo.name || decodeURIComponent(photo.src.split("?")[0].split("/").pop() || "photo");
+
+      evt.photos.forEach((photo) => {
+        const thumb = document.createElement("div");
+        thumb.className = "admin-photo-thumb" + (photo.featured ? " is-featured" : "");
+        thumb.title = photoName(photo);
+        thumb.innerHTML = `<img src="${photo.src}" alt="${photo.alt || ""}"><button type="button" class="admin-photo-star" aria-pressed="${photo.featured ? "true" : "false"}" aria-label="${photo.featured ? "Remove from featured" : "Mark as featured"}">★</button><button type="button" class="admin-photo-remove" aria-label="Remove photo">×</button>`;
+
+        const starBtn = thumb.querySelector(".admin-photo-star");
+        starBtn.addEventListener("click", async () => {
+          // Mutate evt.photos (the one array every thumb in this card shares)
+          // synchronously, before the request goes out — so starring several
+          // photos in quick succession always builds on the latest state,
+          // even if the previous click's save hasn't come back yet.
+          photo.featured = !photo.featured;
+          thumb.classList.toggle("is-featured", photo.featured);
+          starBtn.setAttribute("aria-pressed", String(photo.featured));
+          starBtn.setAttribute("aria-label", photo.featured ? "Remove from featured" : "Mark as featured");
+          refreshSlugText();
+          try {
+            await savePhotos(evt, evt.photos);
+          } catch (err) {
+            photo.featured = !photo.featured;
+            thumb.classList.toggle("is-featured", photo.featured);
+            starBtn.setAttribute("aria-pressed", String(photo.featured));
+            refreshSlugText();
+            alert(err.message || "Failed.");
+          }
+        });
+
+        thumb.querySelector(".admin-photo-remove").addEventListener("click", async () => {
+          if (!confirm("Remove this photo from the event?")) return;
+          const idx = evt.photos.indexOf(photo);
+          if (idx === -1) return;
+          evt.photos.splice(idx, 1);
+          thumb.remove();
+          refreshSlugText();
+          try {
+            await savePhotos(evt, evt.photos);
+          } catch (err) {
+            evt.photos.splice(idx, 0, photo);
+            photoGrid.insertBefore(thumb, photoGrid.children[idx] || null);
+            refreshSlugText();
+            alert(err.message || "Failed.");
+          }
+        });
+
+        photoGrid.appendChild(thumb);
+      });
+
+      const UPLOAD_CONCURRENCY = 5;
+      const addForm = card.querySelector(".admin-add-event-photo-form");
+      const submitBtn2 = addForm.querySelector("button[type=submit]");
+      const retryBtn = addForm.querySelector(".admin-retry-failed-btn");
+      const progressWrap = card.querySelector(".admin-progress");
+      const progressFill = card.querySelector(".admin-progress-fill");
+      const progressPct = card.querySelector(".admin-progress-pct");
+      const progressLabel = card.querySelector(".admin-progress-label");
+      const statusEl2 = addForm.querySelector(".admin-photo-status");
+      let lastFailedFiles = [];
+      // Same reasoning as the client-gallery uploader: cancel any refresh a
+      // first attempt scheduled if "Retry failed" starts a new batch before
+      // it fires, so it can't yank this card out from under an upload in
+      // progress.
+      let refreshTimer = null;
+
+      async function uploadEventPhotos(files) {
+        if (!files.length) return;
+
+        setStatus(statusEl2, "", null);
+        submitBtn2.disabled = true;
+        retryBtn.hidden = true;
+        clearTimeout(refreshTimer);
+
+        const failedFiles = [];
+        let completed = 0;
+        // New photos are saved to the event as each one finishes uploading,
+        // not all at once at the end — chained so two finishing close
+        // together can't race each other and overwrite the event's photo
+        // list, and a late failure can't lose photos that already saved.
+        let saveChain = Promise.resolve(evt.photos.slice());
+
+        progressWrap.hidden = false;
+        progressWrap.setAttribute("aria-valuenow", "0");
+        progressFill.style.width = "0%";
+        progressPct.textContent = "0%";
+        progressLabel.textContent = `0 of ${files.length} photos uploaded`;
+
+        function updateProgress() {
+          const pct = files.length ? Math.round((completed / files.length) * 100) : 100;
+          progressFill.style.width = `${pct}%`;
+          progressPct.textContent = `${pct}%`;
+          progressWrap.setAttribute("aria-valuenow", String(pct));
+          progressLabel.textContent = `${completed} of ${files.length} photo${files.length === 1 ? "" : "s"} uploaded`;
+        }
+
+        await mapWithConcurrency(files, UPLOAD_CONCURRENCY, async (file) => {
+          let url;
+          try {
+            url = await uploadImage(file);
+          } catch (err) {
+            if (err instanceof SessionExpiredError) return; // already redirecting to login
+            failedFiles.push(file);
+            console.error(`Upload failed for ${file.name}:`, err);
+            return;
+          }
+          const photo = { src: url, name: file.name, alt: `${evt.title} — photo`, featured: false };
+
+          saveChain = saveChain.then(async (currentPhotos) => {
+            try {
+              const updated = [...currentPhotos, photo];
+              const res = await adminFetch("/api/admin/portfolio?events=1", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ slug: evt.slug, photos: updated }),
+              });
+              const data = await res.json();
+              if (!res.ok || !data.ok) throw new Error(data.error || "Couldn't save this photo.");
+              completed++;
+              updateProgress();
+              evt.photos = updated;
+              return updated;
+            } catch (err) {
+              if (err instanceof SessionExpiredError) return currentPhotos;
+              failedFiles.push(file);
+              console.error(`Couldn't save ${file.name}:`, err);
+              return currentPhotos;
+            }
+          });
+          await saveChain;
+        });
+
+        updateProgress();
+        submitBtn2.disabled = false;
+        lastFailedFiles = failedFiles;
+
+        if (!failedFiles.length) {
+          setStatus(statusEl2, `Added ${completed} photo${completed === 1 ? "" : "s"}.`, "success");
+          addForm.reset();
+        } else {
+          const names = failedFiles.map((f) => f.name).join(", ");
+          setStatus(statusEl2, `Added ${completed} of ${files.length} — failed: ${names}.`, "error");
+          retryBtn.hidden = false;
+          retryBtn.textContent = `Retry ${failedFiles.length} failed`;
+        }
+        refreshTimer = setTimeout(loadEvents, failedFiles.length ? 8000 : 1500);
+      }
+
+      addForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        uploadEventPhotos(Array.from(addForm.photo.files || []));
+      });
+      retryBtn.addEventListener("click", () => uploadEventPhotos(lastFailedFiles));
+
+      list.insertBefore(card, emptyEl);
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setStatus(statusEl, "", null);
+
+    const title = form.title.value.trim();
+    if (!title) {
+      setStatus(statusEl, "Event name is required.", "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    try {
+      const res = await adminFetch("/api/admin/portfolio?events=1", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Could not create event.");
+      form.reset();
+      setStatus(statusEl, "Created.", "success");
+      loadEvents();
+    } catch (err) {
+      setStatus(statusEl, err.message || "Something went wrong.", "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  loadEvents();
 }
 
 /* ---------- Client galleries tab ---------- */

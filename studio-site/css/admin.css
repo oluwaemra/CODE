@@ -166,9 +166,9 @@
 }
 .admin-edit-form-actions { display: flex; align-items: center; gap: 12px; }
 
-/* ---------- Client galleries ---------- */
-.admin-gallery-list { display: flex; flex-direction: column; gap: 20px; }
-.admin-gallery-card {
+/* ---------- Client galleries + Events (same card layout) ---------- */
+.admin-gallery-list, .admin-event-list { display: flex; flex-direction: column; gap: 20px; }
+.admin-gallery-card, .admin-event-card {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 20px;
@@ -302,6 +302,26 @@
 }
 .admin-photo-thumb.is-liked .admin-photo-like { display: flex; }
 .admin-photo-thumb.is-liked { outline: 2px solid #ff5a5f; outline-offset: -2px; }
+.admin-photo-star {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: rgba(13, 13, 13, 0.8);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.admin-photo-star:hover { color: #ffd166; }
+.admin-photo-thumb.is-featured .admin-photo-star { color: #ffd166; }
+.admin-photo-thumb.is-featured { outline: 2px solid #ffd166; outline-offset: -2px; }
 .admin-fav-bar {
   display: flex;
   flex-wrap: wrap;

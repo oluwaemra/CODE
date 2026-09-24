@@ -13,6 +13,10 @@
 //   likes:<slug>            -> Redis SET of photo srcs the client has favourited
 //                              (its own key + atomic SADD/SREM, so a client liking
 //                              a photo never races with an admin editing the gallery)
+//   event:<slug>            -> JSON object for one portfolio event (a grouped
+//                              set of public photos — see the Events tab and
+//                              the "Events" filter on portfolio.html)
+//   (event slugs are discovered via redis.keys("event:*"))
 
 const { Redis } = require("@upstash/redis");
 
@@ -97,6 +101,30 @@ async function listGalleries() {
   return values.filter(Boolean);
 }
 
+function eventKey(slug) {
+  return `event:${slug}`;
+}
+
+async function getEvent(slug) {
+  return getClient().get(eventKey(slug));
+}
+
+async function saveEvent(event) {
+  await getClient().set(eventKey(event.slug), event);
+}
+
+async function deleteEvent(slug) {
+  await getClient().del(eventKey(slug));
+}
+
+async function listEvents() {
+  const redis = getClient();
+  const keys = await redis.keys("event:*");
+  if (!keys.length) return [];
+  const values = await Promise.all(keys.map((key) => redis.get(key)));
+  return values.filter(Boolean);
+}
+
 module.exports = {
   getPortfolioItems,
   savePortfolioItems,
@@ -108,4 +136,8 @@ module.exports = {
   setLike,
   getEmails,
   addEmail,
+  getEvent,
+  saveEvent,
+  deleteEvent,
+  listEvents,
 };
