@@ -57,13 +57,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (message && !sticky) statusTimer = setTimeout(() => { statusEl.hidden = true; }, 3500);
   }
 
-  // Storage lives on another origin, where browsers ignore the `download`
-  // attribute — saveOne() below fetches the bytes itself so it can force a
-  // real download under the original filename. This is only the fallback
-  // for when that fetch fails (e.g. offline): it just opens the raw file,
-  // still under the storage service's own name, rather than downloading it.
+  // Storage (Cloudflare R2, on its own domain) only sends CORS headers on
+  // the preflight check, not the real response, so the browser can't fetch()
+  // a photo directly to save it — and browsers ignore the `download`
+  // attribute across origins anyway. Route through our own API instead: it
+  // fetches the photo server-side (no CORS involved between two servers)
+  // and streams it back same-origin with the right file name already set.
   function downloadUrl(src) {
-    return src;
+    return `/api/gallery-photos?download=${encodeURIComponent(src)}`;
   }
 
   function visiblePhotos() {
@@ -101,32 +102,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return name;
   }
 
-  // Save one photo under its original name. (A plain link would save it under
-  // the storage service's renamed file, so fetch it and save the bytes
-  // ourselves — which means the full-quality original has to load into memory
-  // before the save can start. `triggerBtn` gets disabled and a toast shown
-  // for that stretch, so it doesn't look like the click did nothing.
-  async function saveOne(photo, triggerBtn) {
-    const name = originalName(photo, gallery.photos.indexOf(photo));
-    if (triggerBtn) triggerBtn.disabled = true;
-    toast("Downloading…", { sticky: true });
-    try {
-      const res = await fetch(photo.src);
-      if (!res.ok) throw new Error("fetch failed");
-      const url = URL.createObjectURL(await res.blob());
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-      toast("Downloaded.");
-    } catch {
-      window.location.href = downloadUrl(photo.src); // still gets the file, just renamed
-    } finally {
-      if (triggerBtn) triggerBtn.disabled = false;
-    }
+  // Save one photo under its original name, via our own API (see downloadUrl
+  // above) so the browser can download it natively — its own progress UI,
+  // streamed to disk as it arrives, no waiting on a full fetch()+blob first.
+  function saveOne(photo) {
+    const link = document.createElement("a");
+    link.href = downloadUrl(photo.src);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   // ---------- email gate (once per visit, before the first download) ----------
@@ -384,7 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       async function* files() {
         for (let i = 0; i < photos.length; i++) {
-          const res = await fetch(photos[i].src);
+          const res = await fetch(downloadUrl(photos[i].src));
           if (!res.ok) throw new Error(`Couldn't fetch photo ${i + 1}.`);
           done = i + 1;
           toast(`Zipping photo ${done} of ${photos.length}…`, { sticky: true });
@@ -499,7 +483,7 @@ document.addEventListener("DOMContentLoaded", () => {
     likeBtn.addEventListener("click", () => current() && toggleLike(current().src));
     dlLink.addEventListener("click", () => {
       const photo = current();
-      if (photo) emailGate.require(() => saveOne(photo, dlLink));
+      if (photo) emailGate.require(() => saveOne(photo));
     });
     box.addEventListener("click", (e) => { if (e.target === box) close(); });
 
