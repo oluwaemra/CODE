@@ -102,9 +102,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Save one photo under its original name. (A plain link would save it under
-  // the storage service's renamed file, so fetch it and save the bytes ourselves.)
-  async function saveOne(photo) {
+  // the storage service's renamed file, so fetch it and save the bytes
+  // ourselves — which means the full-quality original has to load into memory
+  // before the save can start. `triggerBtn` gets disabled and a toast shown
+  // for that stretch, so it doesn't look like the click did nothing.
+  async function saveOne(photo, triggerBtn) {
     const name = originalName(photo, gallery.photos.indexOf(photo));
+    if (triggerBtn) triggerBtn.disabled = true;
+    toast("Downloading…", { sticky: true });
     try {
       const res = await fetch(photo.src);
       if (!res.ok) throw new Error("fetch failed");
@@ -116,8 +121,11 @@ document.addEventListener("DOMContentLoaded", () => {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
+      toast("Downloaded.");
     } catch {
       window.location.href = downloadUrl(photo.src); // still gets the file, just renamed
+    } finally {
+      if (triggerBtn) triggerBtn.disabled = false;
     }
   }
 
@@ -491,7 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
     likeBtn.addEventListener("click", () => current() && toggleLike(current().src));
     dlLink.addEventListener("click", () => {
       const photo = current();
-      if (photo) emailGate.require(() => saveOne(photo));
+      if (photo) emailGate.require(() => saveOne(photo, dlLink));
     });
     box.addEventListener("click", (e) => { if (e.target === box) close(); });
 
