@@ -524,9 +524,15 @@ img { max-width: 100%; display: block; }
   font-weight: 500;
 }
 .event-view-all { flex-shrink: 0; }
-/* .events-list already carries the side gutter; the inner masonry grid
-   shouldn't double it up the way the page-level one does. */
-.event-group-grid { padding: 0; }
+/* Only the featured-photo preview here uses 4 columns (one more than the
+   flat portfolio grid) — the full event page (.event-full-grid, in
+   portfolio-event.html) stays at the regular .gallery-grid column count.
+   .events-list already carries the side gutter, so the nested preview
+   grid drops the page-level padding .gallery-grid normally has. */
+.event-group-grid {
+  column-count: 4;
+  padding: 0;
+}
 
 /* ---------- About page ---------- */
 .mission-band {

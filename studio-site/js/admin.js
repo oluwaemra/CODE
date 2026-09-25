@@ -561,7 +561,11 @@ function initEventsTab() {
         await mapWithConcurrency(files, UPLOAD_CONCURRENCY, async (file) => {
           let url;
           try {
-            url = await uploadImage(file);
+            // Event photos are the one full-size image shown both in the
+            // grid and the lightbox (unlike client-gallery photos, there's
+            // no separate small preview) — sized up from the flat-portfolio
+            // default so a 4-column grid and a full-screen open both stay sharp.
+            url = await uploadImage(file, { maxDimension: 3200, quality: 0.95 });
           } catch (err) {
             if (err instanceof SessionExpiredError) return; // already redirecting to login
             failedFiles.push(file);
