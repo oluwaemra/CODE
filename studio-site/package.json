@@ -11,14 +11,14 @@
     "seed": "node scripts/seed-demo-data.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.687.0",
-    "@aws-sdk/s3-request-presigner": "^3.687.0",
     "@upstash/redis": "^1.38.3",
+    "aws4fetch": "^1.0.20",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "dotenv": "^17.4.2",
-    "vercel": "^48.0.0"
+    "vercel": "^48.0.0",
+    "wrangler": "^4.158.0"
   }
 }

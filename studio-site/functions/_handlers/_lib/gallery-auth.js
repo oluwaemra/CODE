@@ -48,7 +48,7 @@ function parseCookies(cookieHeader) {
 }
 
 function setSessionCookie(res, token) {
-  const isProd = process.env.VERCEL_ENV === "production";
+  const isProd = process.env.LOCAL_DEV !== "1";
   const parts = [
     `${COOKIE_NAME}=${encodeURIComponent(token)}`,
     "Path=/",

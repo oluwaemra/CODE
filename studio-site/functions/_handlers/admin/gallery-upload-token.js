@@ -16,10 +16,7 @@
 //   - publicUrl: where the file will be reachable once the PUT succeeds —
 //     save this on the gallery record.
 
-const crypto = require("crypto");
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { getR2Client, publicUrlFor, missingEnv } = require("../_lib/r2");
+const { presignPut, publicUrlFor, missingEnv, randomHex } = require("../_lib/r2");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
 
 // Advisory only — a presigned PUT URL has no built-in max-size enforcement,
@@ -61,18 +58,10 @@ module.exports = async function handler(req, res) {
   }
 
   const safeName = String(filename).replace(/[^a-zA-Z0-9.\-_]/g, "-");
-  const key = `galleries/${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeName}`;
+  const key = `galleries/${Date.now()}-${randomHex(8)}-${safeName}`;
 
   try {
-    const uploadUrl = await getSignedUrl(
-      getR2Client(),
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: key,
-        ContentType: contentType,
-      }),
-      { expiresIn: URL_TTL_SECONDS }
-    );
+    const uploadUrl = await presignPut(key, contentType, URL_TTL_SECONDS);
     return res.status(200).json({ ok: true, uploadUrl, publicUrl: publicUrlFor(key), maxBytes: MAX_BYTES });
   } catch (err) {
     console.error("Gallery upload token error:", err);

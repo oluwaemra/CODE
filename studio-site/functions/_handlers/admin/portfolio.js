@@ -9,7 +9,6 @@
 // Categories match the filter buttons on portfolio.html:
 // portraits | events | commercial | graduation | video | featured
 
-const crypto = require("crypto");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
 const { getPortfolioItems, savePortfolioItems, getEvent, saveEvent, deleteEvent, listEvents } = require("../_lib/kv");
 
@@ -155,7 +154,7 @@ module.exports = safeHandler(async function handler(req, res) {
 
     const items = await getPortfolioItems();
     const item = {
-      id: crypto.randomUUID(),
+      id: globalThis.crypto.randomUUID(),
       title: String(title).trim(),
       category,
       imageUrl,

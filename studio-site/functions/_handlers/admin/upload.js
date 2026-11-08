@@ -13,9 +13,7 @@
 // client-gallery photos. Fine for a template; swap for signed/private
 // access before handling sensitive shoots at scale.
 
-const crypto = require("crypto");
-const { PutObjectCommand } = require("@aws-sdk/client-s3");
-const { getR2Client, publicUrlFor, missingEnv } = require("../_lib/r2");
+const { putObject, publicUrlFor, missingEnv, randomHex } = require("../_lib/r2");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8MB decoded — client-side resize should stay well under this
@@ -64,17 +62,10 @@ module.exports = async function handler(req, res) {
   }
 
   const safeName = String(filename).replace(/[^a-zA-Z0-9.\-_]/g, "-");
-  const key = `uploads/${Date.now()}-${crypto.randomBytes(8).toString("hex")}-${safeName}`;
+  const key = `uploads/${Date.now()}-${randomHex(8)}-${safeName}`;
 
   try {
-    await getR2Client().send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME,
-        Key: key,
-        Body: buffer,
-        ContentType: contentType,
-      })
-    );
+    await putObject(key, buffer, contentType);
     return res.status(200).json({ ok: true, url: publicUrlFor(key) });
   } catch (err) {
     console.error("R2 upload failed:", err);
