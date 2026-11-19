@@ -27,12 +27,12 @@ module.exports = safeHandler(async function handler(req, res) {
   if (req.method === "GET" && req.query && req.query.emails) {
     // The master email sheet: every email used to download, across galleries.
     const [emails, galleries] = await Promise.all([listAllEmails(), listGalleries()]);
-    const names = new Map(galleries.map((g) => [g.slug, g.clientName]));
+    const live = new Map(galleries.map((g) => [g.slug, g.clientName]));
     return res.status(200).json({
       ok: true,
-      emails: emails.map((e) => ({
+      emails: emails.map(({ names, ...e }) => ({
         ...e,
-        galleries: e.galleries.map((slug) => ({ slug, clientName: names.get(slug) || slug })),
+        galleries: e.galleries.map((slug) => ({ slug, clientName: live.get(slug) || (names && names[slug]) || slug })),
       })),
     });
   }

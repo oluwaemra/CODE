@@ -62,7 +62,24 @@ async function saveGallery(gallery) {
 }
 
 async function deleteGallery(slug) {
-  await getClient().del(galleryKey(slug), likesKey(slug), emailsKey(slug));
+  // Emails outlive the gallery: copy them into the master sheet (with the
+  // client's name, since the gallery record is about to go) before deleting.
+  const redis = getClient();
+  const gallery = await redis.get(galleryKey(slug));
+  const emails = await redis.smembers(emailsKey(slug));
+  const now = new Date().toISOString();
+  for (const raw of Array.isArray(emails) ? emails : []) {
+    const email = String(raw);
+    const existing = (await redis.hget(EMAIL_BOOK, email)) || {};
+    const galleries = Array.isArray(existing.galleries) ? existing.galleries : [];
+    if (!galleries.includes(slug)) galleries.push(slug);
+    const names = { ...(existing.names || {}) };
+    if (gallery && gallery.clientName) names[slug] = gallery.clientName;
+    await redis.hset(EMAIL_BOOK, {
+      [email]: { firstSeen: existing.firstSeen || null, lastSeen: existing.lastSeen || null, galleries, names },
+    });
+  }
+  await redis.del(galleryKey(slug), likesKey(slug), emailsKey(slug));
 }
 
 function likesKey(slug) {
@@ -104,7 +121,7 @@ async function addEmail(slug, email) {
   const galleries = Array.isArray(existing.galleries) ? existing.galleries : [];
   if (!galleries.includes(slug)) galleries.push(slug);
   await redis.hset(EMAIL_BOOK, {
-    [clean]: { firstSeen: existing.firstSeen || now, lastSeen: now, galleries },
+    [clean]: { firstSeen: existing.firstSeen || now, lastSeen: now, galleries, names: existing.names || {} },
   });
 }
 
@@ -120,6 +137,7 @@ async function listAllEmails() {
       firstSeen: (info && info.firstSeen) || null,
       lastSeen: (info && info.lastSeen) || null,
       galleries: Array.isArray(info && info.galleries) ? [...info.galleries] : [],
+      names: (info && info.names) || {},
     });
   }
   const keys = await redis.keys("emails:*");
@@ -128,7 +146,7 @@ async function listAllEmails() {
     const members = await redis.smembers(key);
     for (const raw of Array.isArray(members) ? members : []) {
       const email = String(raw);
-      if (!entries.has(email)) entries.set(email, { email, firstSeen: null, lastSeen: null, galleries: [] });
+      if (!entries.has(email)) entries.set(email, { email, firstSeen: null, lastSeen: null, galleries: [], names: {} });
       const entry = entries.get(email);
       if (!entry.galleries.includes(slug)) entry.galleries.push(slug);
     }
