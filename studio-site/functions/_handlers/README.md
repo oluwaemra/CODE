@@ -49,7 +49,7 @@ Project → Settings → Environment Variables):
 
 ## 3. Admin panel — `/admin`
 
-A single shared password gates `/admin/index.html`, where you can:
+A single shared password gates `/admin/dashboard`, where you can:
 - Add, edit, and delete portfolio grid items (with image upload)
 - Create client galleries, set/change their password, toggle whether
   downloads are allowed, and add or remove photos
