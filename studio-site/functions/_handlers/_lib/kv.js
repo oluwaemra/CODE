@@ -89,8 +89,56 @@ async function getEmails(slug) {
   return Array.isArray(members) ? members.map(String) : [];
 }
 
+// Master "email sheet": one hash, field = email, value = { firstSeen,
+// lastSeen, galleries: [slug, ...] }. The per-gallery sets above stay as they
+// are; this adds timestamps and a cross-gallery view for the admin.
+const EMAIL_BOOK = "emailbook";
+
 async function addEmail(slug, email) {
-  await getClient().sadd(emailsKey(slug), String(email).trim().toLowerCase());
+  const redis = getClient();
+  const clean = String(email).trim().toLowerCase();
+  await redis.sadd(emailsKey(slug), clean);
+
+  const now = new Date().toISOString();
+  const existing = (await redis.hget(EMAIL_BOOK, clean)) || {};
+  const galleries = Array.isArray(existing.galleries) ? existing.galleries : [];
+  if (!galleries.includes(slug)) galleries.push(slug);
+  await redis.hset(EMAIL_BOOK, {
+    [clean]: { firstSeen: existing.firstSeen || now, lastSeen: now, galleries },
+  });
+}
+
+// Every email ever collected, newest first. Emails gathered before the sheet
+// existed are picked up from the per-gallery sets (no date known).
+async function listAllEmails() {
+  const redis = getClient();
+  const book = (await redis.hgetall(EMAIL_BOOK)) || {};
+  const entries = new Map();
+  for (const [email, info] of Object.entries(book)) {
+    entries.set(email, {
+      email,
+      firstSeen: (info && info.firstSeen) || null,
+      lastSeen: (info && info.lastSeen) || null,
+      galleries: Array.isArray(info && info.galleries) ? [...info.galleries] : [],
+    });
+  }
+  const keys = await redis.keys("emails:*");
+  for (const key of keys) {
+    const slug = key.slice("emails:".length);
+    const members = await redis.smembers(key);
+    for (const raw of Array.isArray(members) ? members : []) {
+      const email = String(raw);
+      if (!entries.has(email)) entries.set(email, { email, firstSeen: null, lastSeen: null, galleries: [] });
+      const entry = entries.get(email);
+      if (!entry.galleries.includes(slug)) entry.galleries.push(slug);
+    }
+  }
+  return [...entries.values()].sort((a, b) => {
+    if (a.firstSeen && b.firstSeen) return b.firstSeen.localeCompare(a.firstSeen);
+    if (a.firstSeen) return -1;
+    if (b.firstSeen) return 1;
+    return a.email.localeCompare(b.email);
+  });
 }
 
 async function listGalleries() {
@@ -136,6 +184,7 @@ module.exports = {
   setLike,
   getEmails,
   addEmail,
+  listAllEmails,
   getEvent,
   saveEvent,
   deleteEvent,

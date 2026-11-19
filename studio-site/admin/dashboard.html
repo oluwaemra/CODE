@@ -30,6 +30,7 @@
     <button type="button" class="admin-tab is-active" data-tab="portfolio" role="tab" aria-selected="true">Portfolio</button>
     <button type="button" class="admin-tab" data-tab="events" role="tab" aria-selected="false">Events</button>
     <button type="button" class="admin-tab" data-tab="galleries" role="tab" aria-selected="false">Client Galleries</button>
+    <button type="button" class="admin-tab" data-tab="emails" role="tab" aria-selected="false">Emails</button>
   </nav>
 
   <!-- ============ PORTFOLIO TAB ============ -->
@@ -110,6 +111,29 @@
       </div>
     </div>
 
+  </section>
+
+  <!-- ============ EMAILS TAB ============ -->
+  <!-- Every email entered before downloading from any client gallery. -->
+  <section class="admin-panel" id="panel-emails" hidden>
+    <div class="admin-card">
+      <h2>Collected Emails</h2>
+      <div class="admin-email-toolbar">
+        <input type="search" id="emailSearch" placeholder="Search emails or galleries…" aria-label="Search emails">
+        <span class="admin-email-count" id="emailCount"></span>
+        <button type="button" class="btn btn--outline btn--sm" id="emailCopyBtn">Copy emails</button>
+        <button type="button" class="btn btn--outline btn--sm" id="emailCsvBtn">Download CSV</button>
+        <button type="button" class="btn btn--outline btn--sm" id="emailRefreshBtn">Refresh</button>
+      </div>
+      <p class="form-status" id="emailStatus" role="status" aria-live="polite"></p>
+      <div class="admin-sheet-wrap">
+        <table class="admin-sheet">
+          <thead><tr><th>#</th><th>Email</th><th>Gallery</th><th>First used</th><th>Last used</th></tr></thead>
+          <tbody id="emailRows"></tbody>
+        </table>
+      </div>
+      <p class="admin-empty" id="emailsEmpty" hidden>No emails yet — they appear here when a client enters one to download.</p>
+    </div>
   </section>
 
   <!-- ============ GALLERIES TAB ============ -->

@@ -350,6 +350,16 @@
 .admin-email-summary { color: var(--fg-muted); margin-right: auto; }
 .admin-email-bar .form-status { margin: 0; font-size: 0.8rem; }
 
+.admin-email-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
+.admin-email-toolbar input[type="search"] { flex: 1 1 220px; min-width: 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font: inherit; background: transparent; color: inherit; }
+.admin-email-count { color: var(--fg-muted); font-size: 0.85rem; }
+.admin-sheet-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; }
+.admin-sheet { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.admin-sheet th, .admin-sheet td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.admin-sheet th { position: sticky; top: 0; background: var(--bg, #fff); font-weight: 600; }
+.admin-sheet tbody tr:nth-child(even) { background: rgba(0, 0, 0, 0.03); }
+.admin-sheet td:nth-child(1) { color: var(--fg-muted); width: 1%; }
+
 @media (max-width: 640px) {
   .admin-header { flex-wrap: wrap; }
   .admin-header-actions { margin-left: 0; }

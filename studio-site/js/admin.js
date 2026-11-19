@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initPortfolioTab();
   initEventsTab();
   initGalleriesTab();
+  initEmailsTab();
 });
 
 /* ---------- Shared helpers ---------- */
@@ -1044,4 +1045,89 @@ function initGalleriesTab() {
   });
 
   loadGalleries();
+}
+
+
+/* ---------- Emails tab (master sheet) ---------- */
+
+function initEmailsTab() {
+  const rowsEl = document.getElementById("emailRows");
+  const emptyEl = document.getElementById("emailsEmpty");
+  const countEl = document.getElementById("emailCount");
+  const statusEl = document.getElementById("emailStatus");
+  const searchEl = document.getElementById("emailSearch");
+  let all = [];
+
+  const fmt = (iso) =>
+    iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—";
+  const galleryText = (e) => e.galleries.map((g) => g.clientName).join(", ") || "—";
+
+  function visible() {
+    const q = searchEl.value.trim().toLowerCase();
+    if (!q) return all;
+    return all.filter((e) => e.email.includes(q) || galleryText(e).toLowerCase().includes(q));
+  }
+
+  function render() {
+    const list = visible();
+    rowsEl.textContent = "";
+    list.forEach((e, i) => {
+      const tr = document.createElement("tr");
+      [String(i + 1), e.email, galleryText(e), fmt(e.firstSeen), fmt(e.lastSeen)].forEach((text) => {
+        const td = document.createElement("td");
+        td.textContent = text;
+        tr.appendChild(td);
+      });
+      rowsEl.appendChild(tr);
+    });
+    emptyEl.hidden = all.length > 0;
+    countEl.textContent = `${list.length} of ${all.length} email${all.length === 1 ? "" : "s"}`;
+  }
+
+  async function load() {
+    setStatus(statusEl, "Loading…", "");
+    try {
+      const res = await adminFetch("/api/admin/galleries?emails=1");
+      const data = await readJson(res);
+      if (!res.ok || !data.ok) throw new Error(data.error || "Couldn't load emails.");
+      all = data.emails;
+      setStatus(statusEl, "", "");
+      render();
+    } catch (err) {
+      if (err instanceof SessionExpiredError) return;
+      setStatus(statusEl, err.message || "Couldn't load emails.", "error");
+    }
+  }
+
+  searchEl.addEventListener("input", render);
+  document.getElementById("emailRefreshBtn").addEventListener("click", load);
+
+  document.getElementById("emailCopyBtn").addEventListener("click", async () => {
+    const list = visible();
+    try {
+      await navigator.clipboard.writeText(list.map((e) => e.email).join("\n"));
+      setStatus(statusEl, `Copied ${list.length} email${list.length === 1 ? "" : "s"}.`, "success");
+    } catch {
+      setStatus(statusEl, "Couldn't copy — your browser blocked clipboard access.", "error");
+    }
+  });
+
+  document.getElementById("emailCsvBtn").addEventListener("click", () => {
+    const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+    const lines = [["Email", "Gallery", "First used", "Last used"].map(q).join(",")];
+    visible().forEach((e) =>
+      lines.push([e.email, galleryText(e), e.firstSeen || "", e.lastSeen || ""].map(q).join(","))
+    );
+    const url = URL.createObjectURL(new Blob([lines.join("\r\n")], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "emrashotit-emails.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  });
+
+  // Load when the tab is opened so the sheet is always current.
+  document.querySelector('.admin-tab[data-tab="emails"]').addEventListener("click", load);
 }

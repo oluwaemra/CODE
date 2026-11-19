@@ -10,7 +10,7 @@
 
 const bcrypt = require("bcryptjs");
 const { rejectIfNotAdmin } = require("../_lib/admin-auth");
-const { getGallery, saveGallery, deleteGallery, listGalleries, getLikes, getEmails } = require("../_lib/kv");
+const { getGallery, saveGallery, deleteGallery, listGalleries, getLikes, getEmails, listAllEmails } = require("../_lib/kv");
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
@@ -23,6 +23,19 @@ const safeHandler = require("../_lib/safe-handler");
 
 module.exports = safeHandler(async function handler(req, res) {
   if (rejectIfNotAdmin(req, res)) return;
+
+  if (req.method === "GET" && req.query && req.query.emails) {
+    // The master email sheet: every email used to download, across galleries.
+    const [emails, galleries] = await Promise.all([listAllEmails(), listGalleries()]);
+    const names = new Map(galleries.map((g) => [g.slug, g.clientName]));
+    return res.status(200).json({
+      ok: true,
+      emails: emails.map((e) => ({
+        ...e,
+        galleries: e.galleries.map((slug) => ({ slug, clientName: names.get(slug) || slug })),
+      })),
+    });
+  }
 
   if (req.method === "GET") {
     const galleries = await listGalleries();
